@@ -25,17 +25,32 @@ SECRET_KEY = 'django-insecure-qr3@7o#-yex+4a3q@##tp46dl(w28d-9^wd^bic1if(%mc9=4s
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['192.168.10.63','localhost','127.0.0.1','192.168.10.250','childcare.topitsolutions.co.nz']
+CSRF_TRUSTED_ORIGINS = ['https://childcare.topitsolutions.co.nz','http://childcare.topitsolutions.co.nz']
 
 
 # Application definition
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Ensure Django collects static files from all apps' static directories
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
+    BASE_DIR / 'attendance/static',
+    BASE_DIR / 'reports/static',
+    BASE_DIR / 'notifications/static',
 ]
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media files configuration
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Add any additional static directories if needed
+# STATICFILES_DIRS = [
+#     BASE_DIR / 'additional_static',
+# ]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -46,6 +61,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'attendance',
     'reports',
+    'notifications',
 ]
 
 MIDDLEWARE = [
@@ -63,7 +79,7 @@ ROOT_URLCONF = 'childcare.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -77,14 +93,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'childcare.wsgi.application'
 
+# Authentication settings
+LOGIN_REDIRECT_URL = '/reports/admin-portal/'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
+    'default1': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+    },
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'childcare_tbl',
+        'USER': 'postgres',
+        'PASSWORD': 'Mmsucit1502',
+        'HOST': '192.168.10.42',
+        'PORT': '5432',
     }
 }
 
@@ -113,22 +139,38 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Pacific/Auckland'
 
 USE_I18N = True
 
 USE_TZ = True
 
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Static files configuration
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    BASE_DIR / 'static',
 ]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'newzealandchildcare@gmail.com'
+EMAIL_HOST_PASSWORD = 'ttgc lznr qcjt cofk'
+
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
