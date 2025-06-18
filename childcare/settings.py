@@ -11,9 +11,13 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import pytz
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# New Zealand timezone
+NZ_TIMEZONE = pytz.timezone('Pacific/Auckland')
 
 
 # Quick-start development settings - unsuitable for production
@@ -62,6 +66,7 @@ INSTALLED_APPS = [
     'attendance',
     'reports',
     'notifications',
+    'monitor',
 ]
 
 MIDDLEWARE = [
@@ -100,13 +105,13 @@ LOGIN_REDIRECT_URL = '/reports/admin-portal/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default1': {
+    'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     },
-    'default': {
+    'postgresql': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'childcare_tbl',
+        'NAME': 'funtime_tbl',
         'USER': 'postgres',
         'PASSWORD': 'Mmsucit1502',
         'HOST': '192.168.10.42',
@@ -143,7 +148,7 @@ TIME_ZONE = 'Pacific/Auckland'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -151,15 +156,20 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Static files configuration
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Directories where Django will look for static files
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
+    BASE_DIR / 'attendance/static',
+    BASE_DIR / 'reports/static',
 ]
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# Admin Site Settings
+ADMIN_SITE_HEADER = 'Childcare Attendance System'
+ADMIN_SITE_TITLE = 'Childcare Attendance System'
+ADMIN_INDEX_TITLE = 'Welcome to Childcare Attendance System'
 
 # Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -170,7 +180,3 @@ EMAIL_HOST_USER = 'newzealandchildcare@gmail.com'
 EMAIL_HOST_PASSWORD = 'ttgc lznr qcjt cofk'
 
 import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()

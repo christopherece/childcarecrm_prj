@@ -3,71 +3,337 @@
 {% block title %}Attendance Records{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Attendance Records</h3>
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">Attendance Records</h3>
+                    <div class="d-flex gap-2">
+                        <div class="input-group input-group-sm">
+                            <input type="text" id="childFilter" class="form-control" placeholder="Search by child or parent name...">
+                            <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <select id="roomFilter" class="form-select form-select-sm">
+                            <option value="">All Rooms</option>
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Child Name</th>
+                                <th>Parent Name</th>
+                                <th>Center</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in attendance_data %}
+                            <tr>
+                                <td>{{ data.child.name }}</td>
+                                <td>{{ data.child.parent.name }}</td>
+                                <td>{{ data.child.center.name }}</td>
+                                <td>
+                                    {% if data.records %}
+                                        <span class="badge bg-success">Signed In</span>
+                                        <br>
+                                        <small class="text-muted">
+                                            {% for record in data.records %}
+                                                {% if forloop.first %}
+                                                    Sign In: {{ record.sign_in }}
+                                                    {% if record.sign_out %}
+                                                        <br>Sign Out: {{ record.sign_out }}
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </small>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Not Signed In</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if data.records %}
+                                        <button class="btn btn-sm btn-danger sign-out-btn" 
+                                                data-child-id="{{ data.child.id }}">
+                                            Sign Out
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-success sign-in-btn" 
+                                                data-child-id="{{ data.child.id }}">
+                                            Sign In
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Child Name</th>
-                        <th>Parent Name</th>	
-                        <th>Center</th>
-                        <th>Status</th>
-                        <th>Last Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for child in children_data %}
-                    <tr>
-                        <td>{{ child.name }}</td>
-                        <td>{{ child.parent }}</td>
-                        <td>{{ child.center }}</td>
-                        <td>
-                            {% if child.status == 'Signed In' %}
-                                <span class="badge bg-success">{{ child.status }}</span>
-                            {% elif child.status == 'Signed Out' %}
-                                <span class="badge bg-warning">{{ child.status }}</span>
-                            {% else %}
-                                <span class="badge bg-danger">{{ child.status }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ child.last_action|default:"-" }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Selected Child Profile</h3>
+            </div>
+            <div class="card-body" id="profile-container">
+                <div class="text-center">
+                    <p>Select a child from the list to view their profile</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const childFilter = document.getElementById('childFilter');
-    const dateFilter = document.getElementById('dateFilter');
-    const rows = document.querySelectorAll('tbody tr');
+{% block extra_js %}{% endblock %}
+        }
+    }
 
-    childFilter.addEventListener('input', filterTable);
-    dateFilter.addEventListener('change', filterTable);
+    // Initial load of data
+    childFilter.dispatchEvent(new Event('input'));
 
-    function filterTable() {
-        const childName = childFilter.value.toLowerCase();
-        const date = dateFilter.value;
-        
-        rows.forEach(row => {
-            const childNameCell = row.cells[0].textContent.toLowerCase();
-            const dateCell = row.cells[2].textContent;
+    // Function to handle errors gracefully
+    function handleError(message) {
+        const errorRow = document.createElement('tr');
+        errorRow.innerHTML = `
+            <td colspan="5" class="text-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                ${message}
+            </td>
+        `;
+        tableBody.innerHTML = '';
+        tableBody.appendChild(errorRow);
+    }
+
+    // Add click handler for sign-out button
+    tableBody.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.classList.contains('sign-out-btn')) {
+            const childId = target.dataset.childId;
+            if (!childId) {
+                console.error('No child ID found for sign-out');
+                return;
+            }
+            handleSignOut(childId);
+        }
+    });
+
+    // Function to handle sign-out
+    async function handleSignOut(childId) {
+        if (!confirm('Are you sure you want to sign out this child?')) {
+            return;
+        }
+
+        const loadingSpinner = document.querySelector('.loading-spinner');
+        loadingSpinner.style.display = 'block';
+
+        try {
+            const response = await fetch(`/attendance/sign-out/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ child_id: childId })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
             
-            const matchesChild = childName ? childNameCell.includes(childName) : true;
-            const matchesDate = date ? dateCell === date : true;
-            
-            row.style.display = matchesChild && matchesDate ? '' : 'none';
-        });
+            if (data.success) {
+                // Update the row in place
+                const row = document.querySelector(`[data-child-id="${childId}"]`).closest('tr');
+                const statusCell = row.cells[3];
+                statusCell.innerHTML = `
+                    <span class="badge bg-warning">Signed Out</span>
+                    <span class="text-muted small">at ${data.sign_out_time}</span>
+                `;
+                
+                // Update the last action cell
+                const lastActionCell = row.cells[4];
+                lastActionCell.textContent = data.sign_out_time;
+            } else {
+                throw new Error(data.error || 'Failed to sign out child');
+            }
+        } catch (error) {
+            console.error('Error signing out:', error);
+            handleError(`Error signing out: ${error.message}`);
+        } finally {
+            loadingSpinner.style.display = 'none';
+        }
+    }
+
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
 });
+
+// Function to select a child and load their profile
+function selectChild(childId) {
+    // Validate child ID
+    if (!childId) {
+        handleError('No child ID provided');
+        return;
+    }
+
+    // Show loading spinner
+    const loadingSpinner = document.querySelector('.loading-spinner');
+    loadingSpinner.style.display = 'block';
+    
+    // Clear any existing error message
+    const errorElement = document.querySelector('.profile-error');
+    if (errorElement) {
+        errorElement.remove();
+    }
+    
+    // Get the profile container
+    const profileContainer = document.getElementById('profile-container');
+    if (!profileContainer) {
+        handleError('Profile container not found');
+        return;
+    }
+
+    // Show loading state
+    profileContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    
+    // Fetch profile data
+    fetch(`/attendance/child-profile/?id=${childId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid response format');
+            }
+            
+            // Update profile container
+            profileContainer.innerHTML = `
+                <div class="profile-image">
+                    <img src="${data.profile_picture || '/media/child_pix/user-default.png'}" 
+                         alt="${data.name || 'Child'}'s profile" 
+                         class="rounded-circle" 
+                         style="width: 150px; height: 150px; object-fit: cover;">
+                </div>
+                <h4>${data.name || 'Unknown Child'}</h4>
+                <p>Parent: ${data.parent || 'No Parent'}</p>
+                <p>Center: ${data.center || 'Unknown Center'}</p>
+                <p>Status: <span class="badge ${getStatusBadgeClass(data.status || 'Not Signed In')}">${data.status || 'Not Signed In'}</span></p>
+                ${data.last_action ? `<p>Last Action: ${data.last_action}</p>` : ''}
+            `;
+        })
+        .catch(error => {
+            console.error('Error loading profile:', error);
+            handleError(`Error loading profile: ${error.message}`);
+        })
+        .finally(() => {
+            loadingSpinner.style.display = 'none';
+        });
+}
+}
+
+function getStatusBadgeClass(status) {
+    switch (status) {
+        case 'Signed In':
+            return 'bg-success';
+        case 'Signed Out':
+            return 'bg-warning';
+        default:
+            return 'bg-danger';
+    }
+}
 </script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table th {
+        font-weight: 600;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.075);
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 20px;
+    }
+
+    .search-container {
+        position: relative;
+        width: 100%;
+    }
+
+    .search-container input {
+        padding-right: 35px;
+    }
+
+    .clear-search-btn {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 0 8px;
+    }
+
+    .clear-search-btn:hover {
+        color: #495057;
+    }
+
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 12px;
+        font-size: 0.9em;
+        min-width: 100px;
+        text-align: center;
+    }
+
+    .status-badge.signed-in {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .status-badge.signed-out {
+        background-color: #ffc107;
+        color: #000;
+    }
+
+    .status-badge.not-signed-in {
+        background-color: #6c757d;
+        color: white;
+    }
+
+</style>
 {% endblock %}

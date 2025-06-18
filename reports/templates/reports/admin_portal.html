@@ -1,62 +1,220 @@
 {% extends 'attendance/base.html' %}
 {% load static %}
+{% load attendance_tags %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Initialize date picker and room select
+    // Get selected date from URL parameter or use today
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedDate = urlParams.get('date');
+    const today = new Date().toISOString().split('T')[0];
+    const defaultDate = selectedDate || today;
+
+    // Hide attendance table by default
+    const attendanceTable = document.querySelector('.attendance-list');
+    if (!selectedDate) {
+        attendanceTable.style.display = 'none';
+    }
+
+    flatpickr("#datePicker", {
+        dateFormat: "Y-m-d",
+        defaultDate: defaultDate,
+        onChange: function(selectedDates, dateStr, instance) {
+            updateURL();
+        }
+    });
+
+    // Handle room selection
+    document.getElementById('roomSelect').addEventListener('change', function() {
+        updateURL();
+    });
+
+    function updateURL() {
+        const datePicker = document.getElementById('datePicker');
+        const date = datePicker.value;
+        const roomSelect = document.getElementById('roomSelect');
+        const room = roomSelect.value;
+        
+        const params = new URLSearchParams();
+        if (date) {
+            params.append('date', date);
+        }
+        if (room) {
+            params.append('room', room);
+        }
+        
+        const newUrl = `/reports/admin-portal/?${params.toString()}`;
+        window.history.pushState({}, '', newUrl);
+        window.location.href = newUrl;
+
+        // Show attendance table if date is selected
+        const attendanceTable = document.querySelector('.attendance-list');
+        if (date) {
+            attendanceTable.style.display = 'block';
+        }
+    }
+
+    // Initialize attendance by time chart
+    const attendanceTimeCtx = document.getElementById('attendanceTimeChart').getContext('2d');
+    new Chart(attendanceTimeCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for item in attendance_by_time %}'{{ item.hour }}:00'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Number of Sign Ins',
+                data: [{% for item in attendance_by_time %}{{ item.count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Initialize attendance status chart
+    const attendanceStatusCtx = document.getElementById('attendanceStatusChart').getContext('2d');
+    new Chart(attendanceStatusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [{% for type in attendance_types %}'{{ type }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                data: [{% for count in attendance_counts %}{{ count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.5)',
+                    'rgba(255, 99, 132, 0.5)'
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 99, 132, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    enabled: true
+                }
+            }
+        }
+    });
+
+    function generatePDF() {
+        const datePicker = document.getElementById('datePicker');
+        const date = datePicker.value;
+        const roomSelect = document.getElementById('roomSelect');
+        const room = roomSelect.value;
+        
+        if (date) {
+            const params = new URLSearchParams();
+            params.append('date', date);
+            if (room) {
+                params.append('room', room);
+            }
+            params.append('export_pdf', '1');
+            
+            window.location.href = `/reports/admin-portal/?${params.toString()}`;
+        } else {
+            alert('Please select a date first!');
+        }
+    }
+</script>
+{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
-    <h2 class="mb-4">Admin Portal - Attendance Reports</h2>
-    
-    <!-- Current Attendance Stats -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Total Children</h5>
-                    <h2 class="display-4">{{ total_children }}</h2>
-                </div>
-            </div>
-        </div>
-       
-        <div class="col-md-4">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Currently Signed In</h5>
-                    <h2 class="display-4">{{ currently_signed_in }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Avg Attendance Rate</h5>
-                    <h2 class="display-4">{{ average_attendance_rate }}%</h2>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Time-Based Stats -->
+    
+    <!-- Center Attendance Summary -->
     <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Average Sign-In Time</h5>
-                    <h3 class="text-primary">{% if avg_sign_in_time %}{{ avg_sign_in_time|time:"H:i" }}{% else %}N/A{% endif %}</h3>
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Total Center Attendance</h5>
+                        <div class="d-flex align-items-center" style="gap: 1rem;">
+                            <div class="input-group" style="width: 150px;">
+                                <input type="text" class="form-control flatpickr-input" id="datePicker" name="date" value="{{ selected_date|date:'Y-m-d' }}" readonly="readonly">
+                            </div>
+                            <div class="input-group" style="width: 150px;">
+                                <select id="roomSelect" class="form-select">
+                                    <option value="">All Rooms</option>
+                                    {% for room in rooms %}
+                                        <option value="{{ room.id }}" {% if request.GET.room == room.id|stringformat:"s" %}selected{% endif %}>{{ room.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button class="btn btn-pink" type="button" onclick="generatePDF()">
+                                <i class="fas fa-file-pdf"></i> Generate Report
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Average Sign-Out Time</h5>
-                    <h3 class="text-primary">{% if avg_sign_out_time %}{{ avg_sign_out_time|time:"H:i" }}{% else %}N/A{% endif %}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Peak Attendance Hour</h5>
-                    <h3 class="text-primary">{% if peak_hour %}{{ peak_hour }}:00{% else %}N/A{% endif %}</h3>
+                    <!-- Attendance List -->
+                    <div class="card border-primary attendance-list">
+                        <div class="card-header bg-pink text-white">
+                            <h5 class="mb-0">Attendance List</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Parent</th>
+                                            <th>Status</th>
+                                            <th>Sign In</th>
+                                            <th>Sign Out</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for attendance in display_attendances %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{% url 'reports:child_details' attendance.child.id %}" class="text-decoration-none">
+                                                        {{ attendance.child.name }}
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    {{ attendance.child.parent.name }}
+                                                </td>
+                                                <td>
+                                                    <span class="badge {% if attendance.status == 'Present' %}bg-success{% elif attendance.status == 'Absent' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                        {{ attendance.status }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    {{ attendance.sign_in_time|default:"-" }}
+                                                </td>
+                                                <td>
+                                                    {{ attendance.sign_out_time|default:"-" }}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -65,100 +223,146 @@
     <div class="container mt-4">
         <div class="row mb-4">
             <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h2>Admin Portal</h2>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="fas fa-file-csv"></i> Export Report
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="?export_csv=1&export_type=daily">Daily Report</a></li>
-                            <li><a class="dropdown-item" href="?export_csv=1&export_type=weekly">Weekly Report</a></li>
-                            <li><a class="dropdown-item" href="?export_csv=1&export_type=monthly">Monthly Report</a></li>
-                        </ul>
+                <div class="row align-items-center">
+                    <div class="col-6">
+                        <h2>Admin Portal</h2>
+                    </div>
+                    <div class="col-6">
+                        
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Current Attendance Status</h5>
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Center</th>
-                                        <th>Child Name</th>
-                                        <th>Parent Name</th>
-                                        <th>Status</th>
-                                        <th>Sign In Time</th>
-                                        <th>Sign Out Time</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for child_data in children_data %}
-                                    <tr>
-                                        <td>{{ child_data.center_name }}</td>
-                                        <td>{{ child_data.child.name }}</td>
-                                        <td>{{ child_data.child.parent.name }}</td>
-                                        <td>
-                                            {% if child_data.attendance_records.first and not child_data.attendance_records.first.sign_out %}
-                                                <span class="badge bg-success">Signed In</span>
-                                            {% elif child_data.attendance_records.first and child_data.attendance_records.first.sign_out %}
-                                                <span class="badge bg-danger">Signed Out</span>
-                                            {% else %}
-                                                <span class="badge bg-warning">Not Signed In</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if child_data.attendance_records.first %}
-                                                {{ child_data.attendance_records.first.sign_in|date:"H:i" }}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if child_data.attendance_records.last and child_data.attendance_records.last.sign_out %}
-                                                {{ child_data.attendance_records.last.sign_out|date:"H:i" }}
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+    <!-- Room Cards Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3 class="mb-4">Room Attendance</h3>
+            <div class="row" id="room-cards">
+                {% for room in rooms %}
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">{{ room.name }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h6>Total Children</h6>
+                                    <h3 class="display-4 mb-0">{{ room.children.count }}</h3>
+                                </div>
+                                <div>
+                                    <h6>Signed In</h6>
+                                    <h3 class="display-4 mb-0 text-success">{{ room.attendance_count }}</h3>
+                                </div>
+                            </div>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ room.attendance_rate }}%" 
+                                     aria-valuenow="{{ room.attendance_rate }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    {{ room.attendance_rate }}%
+                                </div>
+                            </div>
+                            <div class="list-group">
+                                {% for attendance in room.attendance %}
+                                    <a href="{% url 'reports:child_details' attendance.child.id %}" class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h5 class="mb-1">{{ attendance.child.name }}</h5>
+                                            <small class="text-muted">{{ attendance.parent }}</small>
+                                        </div>
+                                        <p class="mb-1">Status: {{ attendance.status }}</p>
+                                        <small class="text-muted">Sign In: {{ attendance.sign_in_time|default:"-" }}</small>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Attendance by Time</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="attendanceTimeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Attendance Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="attendanceStatusChart"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
-       
     </div>
 
-    <!-- Active Children -->
     <div class="row">
         <div class="col-12">
             <div class="card mt-4">
                 <div class="card-body">
-                    <h5 class="card-title">Most Active Children</h5>
+                    <h5 class="card-title">Attendance Records for {{ selected_date }}</h5>
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>Child Name</th>
                                     <th>Parent Name</th>
-                                    <th>Attendance Count</th>
+                                    <th>Attendance Rate</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for child in active_children %}
-                                <tr>
-                                    <td>{{ child.name }}</td>
-                                    <td>{{ child.parent.name }}</td>
-                                    <td>{{ child.attendance_count }}</td>
-                                </tr>
-                                {% endfor %}
+                                {% if most_active_children %}
+                                    {% for child in most_active_children %}
+                                    <tr>
+                                        <td><a href="{% url 'reports:child_details' child.child.id %}" class="text-decoration-none">{{ child.child.name }}</a></td>
+                                        <td>{{ child.child.parent.name }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress me-2" style="width: 150px; height: 20px;">
+                                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ child.attendance_rate }}%" aria-valuenow="{{ child.attendance_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                </div>
+                                                <span class="fw-bold">{{ child.attendance_rate }}%</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if child.child in signed_in_children %}
+                                                <span class="badge bg-success">Signed In</span>
+                                                {% if child.child.attendance_records.first %}
+                                                    <small class="text-muted">Since {{ child.child.attendance_records.first.sign_in|date:"H:i" }}</small>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge bg-warning">Not Signed In</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">
+                                            <div class="alert alert-info">
+                                                <i class="fas fa-info-circle"></i> No children have attendance records in the last 30 days.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>
@@ -166,5 +370,9 @@
             </div>
         </div>
     </div>
+
+
+
+    </div>
 </div>
-{% endblock %}
+{% endblock content %}

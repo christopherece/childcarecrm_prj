@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.utils import timezone
 import pytz
+from .models import Child, Attendance
 
 # Set default timezone to New Zealand
 NZ_TIMEZONE = pytz.timezone('Pacific/Auckland')
@@ -27,9 +28,40 @@ import json
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
+
+@login_required
+def logout_view(request):
+    """Handle user logout"""
+    if request.method in ['GET', 'POST']:
+        logout(request)
+        messages.success(request, 'You have been logged out successfully.')
+        return redirect('attendance:login')
+    return redirect('attendance:login')
+
+# Original imports continue below...
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
+
+def child_detail(request, child_id):
+    """View to display child details and their attendance records"""
+    child = get_object_or_404(Child, id=child_id)
+    
+    # Get today's date
+    today = timezone.now().date()
+    
+    # Get attendance records for this child
+    attendance_records = Attendance.objects.filter(
+        child=child,
+        sign_in__date__gte=today - timedelta(days=7)  # Show last 7 days
+    ).order_by('-sign_in')
+    
+    context = {
+        'child': child,
+        'attendance_records': attendance_records,
+        'today': today
+    }
+    return render(request, 'attendance/child_detail.html', context)
 
 def login_view(request):
     # If GET request, just show the login form
@@ -62,28 +94,45 @@ def login_view(request):
             'password': ''  # Clear password field for security
         })
 
+@login_required
 def check_sign_in(request):
+    """Check if a child is already signed in for today"""
     child_id = request.GET.get('child_id')
     if not child_id:
         return JsonResponse({'error': 'Child ID is required'}, status=400)
     
     try:
         child = Child.objects.get(id=child_id)
-        today = timezone.now().date()
-        existing_sign_in = Attendance.objects.filter(
+        today = timezone.now().astimezone(NZ_TIMEZONE).date()
+        
+        # Check for existing sign-in today
+        attendance = Attendance.objects.filter(
             child=child,
             sign_in__date=today
         ).first()
         
-        if existing_sign_in:
-            return JsonResponse({
-                'already_signed_in': True,
-                'sign_in_time': existing_sign_in.sign_in.strftime('%I:%M %p')
-            })
+        if attendance:
+            if attendance.sign_out:
+                # Child has already signed in and out today
+                return JsonResponse({
+                    'already_signed_in': False,
+                    'error': 'Child has already signed in and out today'
+                })
+            else:
+                # Child is currently signed in
+                return JsonResponse({
+                    'already_signed_in': True,
+                    'sign_in_time': attendance.sign_in.astimezone(NZ_TIMEZONE).strftime('%I:%M %p')
+                })
         
-        return JsonResponse({'already_signed_in': False})
+        # No sign-in exists for today
+        return JsonResponse({
+            'already_signed_in': False
+        })
     except Child.DoesNotExist:
         return JsonResponse({'error': 'Child not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
 def dashboard(request):
@@ -106,16 +155,22 @@ def dashboard(request):
                 if action == 'sign_in':
                     try:
                         with transaction.atomic():
-                            if Attendance.check_existing_record(child):
-                                messages.error(request, f"{child.name} is already signed in today")
-                                return redirect('attendance:dashboard')
-
+                            # Get today's date
+                            today = timezone.now().astimezone(NZ_TIMEZONE).date()
+                            
+                            # Check for existing sign-in today
+                            existing = Attendance.objects.filter(
+                                child=child,
+                                sign_in__date=today,
+                                sign_out__isnull=True
+                            ).first()
+                            # Create new attendance record
                             attendance = Attendance.objects.create(
                                 child=child,
                                 parent=child.parent,
                                 center=child.center,
                                 sign_in=timezone.now().astimezone(NZ_TIMEZONE),
-                                late=False,  # We'll set this based on the center's opening time
+                                late=False,
                                 notes=notes
                             )
                             
@@ -127,13 +182,6 @@ def dashboard(request):
                                 attendance.late = True
                                 attendance.late_reason = 'Arrived after center opening time'
                                 attendance.save()
-
-                            context = {
-                                'child_name': child.name,
-                                'parent_name': child.parent.name,
-                                'sign_in_time': attendance.sign_in.astimezone(NZ_TIMEZONE).strftime('%I:%M %p'),
-                                'center_name': child.center.name
-                            }
 
                             # Prepare context for sign-in email
                             context = {
@@ -157,9 +205,6 @@ def dashboard(request):
 
                             messages.success(request, f"{child.name} signed in successfully!")
                             return redirect('attendance:dashboard')
-                    except IntegrityError:
-                        messages.error(request, f"{child.name} is already signed in today")
-                        return redirect('attendance:dashboard')
                     except Exception as e:
                         messages.error(request, f"Error signing in {child.name}: {str(e)}")
                         return redirect('attendance:dashboard')
@@ -206,14 +251,14 @@ def dashboard(request):
                             return redirect('attendance:dashboard')
                     except Exception as e:
                         messages.error(request, f"Error signing out {child.name}: {str(e)}")
-                        return redirect('attendance:dashboard')
+                        return redirect('reports:admin_portal')
 
             except Child.DoesNotExist:
                 messages.error(request, "Child not found.")
-                return redirect('attendance:dashboard')
+                return redirect('reports:admin_portal')
             except Exception as e:
                 messages.error(request, f"Error processing request: {str(e)}")
-                return redirect('attendance:dashboard')
+                return redirect('reports:admin_portal')
 
         # For GET requests, show dashboard
         for child in children:
@@ -261,56 +306,77 @@ def dashboard(request):
 def search_children(request):
     """Search for children in teacher's center based on name or parent name"""
     try:
-        if not request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            return JsonResponse({'error': 'Invalid request'}, status=400)
-
-        # Allow any authenticated user to search
-        if not request.user.is_authenticated:
-            return JsonResponse({'error': 'Authentication required'}, status=401)
-
         query = request.GET.get('q', '')
+        room_id = request.GET.get('room', '')
         teacher = get_object_or_404(Teacher, user=request.user)
         center = teacher.center
         
-        # Get children from this center that match the search query
-        children = Child.objects.filter(
-            Q(center=center) & (Q(name__icontains=query) | Q(parent__name__icontains=query))
-        ).select_related('parent', 'center')
+        # Normalize query to lowercase and split into words
+        query_words = query.lower().split()
         
-        # Format the results
-        results = []
-        today = timezone.now().date()
+        # Create Q objects for each word in both child name and parent name
+        name_q = Q()
+        for word in query_words:
+            name_q |= Q(name__icontains=word) | Q(parent__name__icontains=word)
+        
+        # Search in both child name and parent name fields
+        children = Child.objects.filter(
+            name_q
+        ).distinct()
+        
+        # Apply room filter if specified
+        if room_id:
+            children = children.filter(room_id=room_id)
+        
+        today = timezone.now().astimezone(NZ_TIMEZONE).date()
+        
+        data = []
         for child in children:
-            # Get today's attendance record
-            record = Attendance.objects.filter(
+            # Get the latest attendance record for today
+            latest_attendance = Attendance.objects.filter(
                 child=child,
                 sign_in__date=today
-            ).first()
+            ).order_by('-sign_in').first()
             
-            # Check attendance status
-            attendance_status = 'Not Signed In'
-            if record:
-                if record.sign_out:
-                    attendance_status = 'Signed Out'
+            status = 'Not Signed In'
+            last_action = None
+            
+            if latest_attendance:
+                if latest_attendance.sign_out:
+                    status = 'Signed Out'
+                    last_action = latest_attendance.sign_out.astimezone(NZ_TIMEZONE).strftime('%I:%M %p')
                 else:
-                    attendance_status = 'Signed In'
+                    status = 'Signed In'
+                    last_action = latest_attendance.sign_in.astimezone(NZ_TIMEZONE).strftime('%I:%M %p')
             
-            # Get profile picture URL
-            profile_picture_url = child.profile_picture.url if child.profile_picture else request.build_absolute_uri('/media/child_pix/user-default.png')
-            
-            results.append({
+            data.append({
                 'id': child.id,
                 'name': child.name,
-                'parent__name': child.parent.name if child.parent else 'No parent assigned',
-                'center_name': child.center.name if child.center else 'Unknown Center',
-                'profile_picture': profile_picture_url,
-                'attendance_status': attendance_status
+                'parent': child.parent.name if child.parent else 'No Parent',
+                'center': child.center.name if child.center else 'Unknown Center',
+                'status': status,
+                'last_action': last_action,
+                'profile_picture': child.profile_picture.url if child.profile_picture else '/static/images/child_pix/user-default.png'
             })
         
-        return JsonResponse(results, safe=False)
+        return JsonResponse(data, safe=False)
     
     except Teacher.DoesNotExist:
         return JsonResponse({'error': 'Teacher not found'}, status=404)
+    except Exception as e:
+        import traceback
+        print(f"Error in search_children: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def rooms(request):
+    """Get all rooms for the teacher's center"""
+    try:
+        teacher = get_object_or_404(Teacher, user=request.user)
+        center = teacher.center
+        rooms = Room.objects.filter(center=center).values('id', 'name')
+        return JsonResponse(list(rooms), safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -350,13 +416,31 @@ def child_profile(request):
             # Use absolute URL for static files
             profile_picture_url = request.build_absolute_uri('/media/child_pix/user-default.png')
         
+        # Get the latest attendance record for today
+        today = timezone.now().astimezone(NZ_TIMEZONE).date()
+        latest_attendance = Attendance.objects.filter(
+            child=child,
+            sign_in__date=today
+        ).order_by('-sign_in').first()
+        
+        status = 'Not Signed In'
+        last_action = None
+        
+        if latest_attendance:
+            if latest_attendance.sign_out:
+                status = 'Signed Out'
+                last_action = latest_attendance.sign_out.astimezone(NZ_TIMEZONE).strftime('%I:%M %p')
+            else:
+                status = 'Signed In'
+                last_action = latest_attendance.sign_in.astimezone(NZ_TIMEZONE).strftime('%I:%M %p')
+        
         return JsonResponse({
             'profile_picture': profile_picture_url,
             'name': child.name,
-            'parent_name': child.parent.name,
-            'attendance_status': attendance_status,
-            'is_signed_in': is_signed_in,
-            'is_signed_out': is_signed_out
+            'parent': child.parent.name if child.parent else 'No Parent',
+            'center': child.center.name if child.center else 'Unknown Center',
+            'status': status,
+            'last_action': last_action
         })
     except Child.DoesNotExist:
         return JsonResponse({'error': 'Child not found'}, status=404)
@@ -365,18 +449,42 @@ def attendance_records(request):
     # Get today's date in NZ timezone
     today = timezone.now().astimezone(NZ_TIMEZONE).date()
     
-    # Get children from the current teacher's center
+    # Get children from the current teacher's center and rooms
     try:
         teacher = get_object_or_404(Teacher, user=request.user)
         center = teacher.center
+        
+        # If no rooms are assigned, get all rooms from the teacher's center
+        if not teacher.rooms.exists():
+            teacher_rooms = Room.objects.filter(center=center)
+        else:
+            teacher_rooms = teacher.rooms.all()
+        
+        # Debug logging
+        print(f"Teacher found: {teacher.user.username}")
+        print(f"Center: {center.name if center else 'None'}")
+        print(f"Rooms assigned: {', '.join(room.name for room in teacher_rooms)}")
+        
+        # Get all children from the center
         children = Child.objects.filter(center=center).order_by('name')
+        print(f"Children found: {children.count()}")
+        for child in children:
+            print(f"Child: {child.name}, Room: {child.room.name if child.room else 'None'}")
+        
+        # Get attendance records for today for all children in the center
+        todays_attendances = Attendance.objects.filter(
+            child__center=center,
+            sign_in__date=today
+        ).order_by('child_id', 'sign_in')
+        print(f"Attendance records found: {todays_attendances.count()}")
     except Teacher.DoesNotExist:
         messages.error(request, 'Teacher profile not found')
         return redirect('attendance:profile')
     
-    # Get attendance records for today
+    # Get attendance records for today for children in teacher's rooms
     todays_attendances = Attendance.objects.filter(
         child__center=center,
+        child__room__in=teacher_rooms,
         sign_in__date=today
     ).order_by('child_id', 'sign_in')
     
@@ -434,62 +542,155 @@ def attendance_records(request):
 def admin_portal(request):
     return redirect('reports:admin_portal')
 
+@login_required
 def sign_in(request):
-    return redirect('login')
+    """Handle child sign-in"""
+    try:
+        if request.method == 'POST':
+            child_id = request.POST.get('child_id')
+            if not child_id:
+                return JsonResponse({'error': 'Child ID is required'}, status=400)
 
+            child = get_object_or_404(Child, id=child_id)
+            
+            # Check if child is already signed in today
+            if Attendance.check_existing_record(child):
+                existing_record = Attendance.get_today_record(child)
+                return JsonResponse({
+                    'error': 'Child has already signed in today at ' + existing_record.sign_in.astimezone(NZ_TIMEZONE).strftime('%I:%M %p'),
+                    'status': 'Already Signed In',
+                    'existing_sign_in': existing_record.sign_in.astimezone(NZ_TIMEZONE).strftime('%I:%M %p')
+                }, status=400)
+
+            # Create new attendance record
+            attendance = Attendance.objects.create(
+                child=child,
+                parent=child.parent,
+                center=child.center,
+                sign_in=timezone.now().astimezone(NZ_TIMEZONE)
+            )
+
+            # Create notification
+            Notification.objects.create(
+                child=child,
+                parent=child.parent,
+                teacher=request.user.teacher,
+                center=child.center,
+                title=f"Sign In: {child.name}",
+                message=f"{child.name} has been signed in to {child.center.name} at {attendance.sign_in.strftime('%I:%M %p')}"
+            )
+
+            return JsonResponse({
+                'success': True,
+                'sign_in_time': attendance.sign_in.strftime('%I:%M %p'),
+                'status': 'Signed In'
+            })
+        
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    except Exception as e:
+        import traceback
+        print(f"Error in sign_in: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
 def sign_out(request):
-    logout(request)
-    return redirect('attendance:sign_in')
+    """Handle child sign-out"""
+    try:
+        if request.method == 'POST':
+            child_id = request.POST.get('child_id')
+            if not child_id:
+                return JsonResponse({'error': 'Child ID is required'}, status=400)
+
+            child = get_object_or_404(Child, id=child_id)
+            today = timezone.now().astimezone(NZ_TIMEZONE).date()
+
+            # Get today's attendance record for this child
+            attendance = Attendance.objects.filter(
+                child=child,
+                sign_in__date=today,
+                sign_out__isnull=True
+            ).order_by('-sign_in').first()
+
+            if not attendance:
+                return JsonResponse({'error': 'No active sign-in for this child today'}, status=400)
+
+            # Update the attendance record with sign-out time
+            attendance.sign_out = timezone.now().astimezone(NZ_TIMEZONE)
+            attendance.save()
+
+            # Create notification
+            Notification.objects.create(
+                child=child,
+                parent=child.parent,
+                teacher=request.user.teacher,
+                center=child.center,
+                title=f"Sign Out: {child.name}",
+                message=f"{child.name} has been signed out from {child.center.name} at {attendance.sign_out.strftime('%I:%M %p')}"
+            )
+
+            # Redirect to dashboard after successful sign-out
+            return redirect('attendance:dashboard')
+        
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    except Exception as e:
+        import traceback
+        print(f"Error in sign_out: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
 def profile(request):
     """Display teacher's profile and center information"""
-    teacher = get_object_or_404(Teacher, user=request.user)
-    
-    if request.method == 'POST':
-        form = TeacherProfileForm(request.POST, request.FILES, instance=teacher)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Profile updated successfully!')
-            return redirect('attendance:profile')
-    else:
-        form = TeacherProfileForm(instance=teacher)
-    
-    # Get today's date
-    today = timezone.now().date()
-    
-    # Get attendance statistics for the teacher's center
-    center = teacher.center
-    if center:
-        # Get total children in the center
-        total_children = Child.objects.filter(center=center).count()
+    try:
+        teacher = get_object_or_404(Teacher, user=request.user)
+        center = teacher.center
         
-        # Get children signed in today
-        signed_in_children = Child.objects.filter(
-            center=center,
+        # Get teacher's assigned rooms first
+        teacher_rooms = teacher.rooms.all()
+        
+        if request.method == 'POST':
+            form = TeacherProfileForm(request.POST, request.FILES, instance=teacher)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Profile updated successfully!')
+                return redirect('attendance:profile')
+        else:
+            form = TeacherProfileForm(instance=teacher)
+        
+        # Get attendance stats
+        today = timezone.now().date()
+        children = Child.objects.filter(center=center)
+        total_children = children.count()
+        signed_in_children = children.filter(
             attendance__sign_in__date=today
         ).distinct().count()
         
-        # Get average attendance rate for the last 30 days
+        # Calculate average attendance rate for last 30 days
         thirty_days_ago = today - timedelta(days=30)
-        attendance_records = Attendance.objects.filter(
+        total_attendance_records = Attendance.objects.filter(
             child__center=center,
             sign_in__date__gte=thirty_days_ago
         ).count()
-        total_possible_signins = Child.objects.filter(center=center).count() * 30
-        average_attendance_rate = (attendance_records / total_possible_signins * 100) if total_possible_signins > 0 else 0
-    else:
-        total_children = 0
-        signed_in_children = 0
-        average_attendance_rate = 0
-    
-    context = {
-        'teacher': teacher,
-        'center': center,
-        'total_children': total_children,
-        'signed_in_children': signed_in_children,
-        'average_attendance_rate': f'{average_attendance_rate:.1f}',
-        'form': form
-    }
-    
-    return render(request, 'attendance/profile.html', context)
+        total_possible_attendances = children.count() * 30
+        average_attendance_rate = (total_attendance_records / total_possible_attendances) * 100 if total_possible_attendances > 0 else 0
+        
+        # Get children in each room
+        room_children = {}
+        for room in teacher_rooms:
+            children = Child.objects.filter(center=center, room=room)
+            room_children[room] = children
+        
+        return render(request, 'attendance/profile.html', {
+            'teacher': teacher,
+            'center': center,
+            'total_children': total_children,
+            'signed_in_children': signed_in_children,
+            'average_attendance_rate': round(average_attendance_rate, 1),
+            'teacher_rooms': teacher_rooms,
+            'room_children': room_children,
+            'form': form
+        })
+    except Teacher.DoesNotExist:
+        messages.error(request, 'You are not a teacher')
+        return redirect('attendance:dashboard')

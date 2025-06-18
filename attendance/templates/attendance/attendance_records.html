@@ -44,86 +44,293 @@
         padding: 20px;
         color: #6c757d;
     }
+    
+    .loading-spinner {
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .error-message {
+        color: #dc3545;
+        padding: 10px;
+        border-radius: 4px;
+        background-color: #f8d7da;
+    }
+    
+    .room-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin: 15px;
+        padding: 20px;
+        transition: transform 0.2s;
+    }
+    
+    .room-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .room-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .room-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .room-stats {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #28a745;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: #666;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="card-lg">
-        <div class="card-header">
-            <h3>Attendance Records - {{ today }}</h3>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="attendance-table">
-                    <thead>
-                        <tr>
-                            <th>Child Name</th>
-                            <th>Sign In Time</th>
-                            <th>Sign Out Time</th>
-                            <th>Status</th>
-                            <th>Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for record_data in attendance_data %}
-                            <tr>
-                                <td>
-                                    <strong>{{ record_data.child.name }}</strong>
-                                    <small class="text-muted">{{ record_data.child.parent.name }} (Parent)</small>
-                                </td>
-                                <td>
-                                    {% if record_data.records %}
-                                        <div class="d-flex flex-column">
-                                            {% for record in record_data.records %}
-                                                <span>{{ record.sign_in }}</span>
-                                            {% endfor %}
-                                        </div>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if record_data.records %}
-                                        <div class="d-flex flex-column">
-                                            {% for record in record_data.records %}
-                                                <span>{{ record.sign_out }}</span>
-                                            {% endfor %}
-                                        </div>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if record_data.records %}
-                                        <div class="d-flex flex-column">
-                                            {% for record in record_data.records %}
-                                                <span class="{% if record.status == 'Signed In' %}status-signed-in{% elif record.status == 'Signed Out' %}status-signed-out{% else %}status-not-signed{% endif %}">
-                                                    {{ record.status }}
+    <div class="row">
+        {% if attendance_data %}
+            {% for room_name, room_data in attendance_data.items %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">{{ room_name }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group">
+                                {% for child, records in room_data.items %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div>
+                                                <h6 class="mb-0">{{ child.name }}</h6>
+                                                <small class="text-muted">{{ child.parent.name }}</small>
+                                            </div>
+                                            {% if records %}
+                                                 <span class="badge {% if records.0.status == 'Signed In' %}bg-success{% elif records.0.status == 'Signed Out' %}bg-warning{% else %}bg-danger{% endif %}">
+                                                     {{ records.0.status }}
                                                 </span>
-                                            {% endfor %}
+                                            {% else %}
+                                                <span class="badge bg-danger">Not Signed In</span>
+                                            {% endif %}
                                         </div>
-                                    {% else %}
-                                        <span class="status-not-signed">Not Signed In</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if record_data.records %}
-                                        <div class="d-flex flex-column">
-                                            {% for record in record_data.records %}
-                                                <span>{{ record.notes }}</span>
-                                            {% endfor %}
-                                        </div>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                        {% if records %}
+                                            <div class="row">
+                                                <div class="col-6">
+                                                    <small class="text-muted">Sign In:</small>
+                                                    <p class="mb-0">{{ records.0.sign_in }}</p>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted">Sign Out:</small>
+                                                    <p class="mb-0">{{ records.0.sign_out }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="mt-2">
+                                                <small class="text-muted">Notes:</small>
+                                                 <p class="mb-0">{{ records.0.notes|default:"-" }}</p>
+                                            </div>
+                                        {% endif %}
+                                        {% if not records %}
+                                            <button class="btn btn-sm btn-success mt-2 sign-in-btn" data-child-id="{{ child.id }}">
+                                                <i class="fas fa-sign-in-alt"></i> Sign In
+                                            </button>
+                                        {% elif records.0.status == 'Signed In' %}
+                                            <button class="btn btn-sm btn-warning mt-2 sign-out-btn" data-child-id="{{ child.id }}">
+                                                <i class="fas fa-sign-out-alt"></i> Sign Out
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle"></i>
+                    <h5>No children found for attendance report</h5>
+                    <p>Please make sure you have:</p>
+                    <ul>
+                        <li>A teacher profile</li>
+                        <li>Assigned rooms</li>
+                        <li>Children in those rooms</li>
+                    </ul>
+                </div>
             </div>
-        </div>
+        {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sign-in button click handler
+    document.querySelectorAll('.sign-in-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const childId = this.dataset.childId;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            try {
+                const response = await fetch('/attendance/sign-in/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ child_id: childId })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    location.reload(); // Refresh the page to show updated attendance
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Failed to sign in');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while signing in');
+            }
+        });
+    });
+
+    // Sign-out button click handler
+    document.querySelectorAll('.sign-out-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const childId = this.dataset.childId;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            try {
+                const response = await fetch('/attendance/sign-out/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ child_id: childId })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    location.reload(); // Refresh the page to show updated attendance
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Failed to sign out');
+                    
+                    const signOutBtn = document.createElement('button');
+                    signOutBtn.className = 'btn btn-sm btn-warning mt-2 sign-out-btn';
+                    signOutBtn.dataset.childId = childId;
+                    signOutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Sign Out';
+                    card.appendChild(signOutBtn);
+                    
+                    // Update sign-in time
+                    const signInCell = card.querySelector('.col-6:first-child p');
+                    signInCell.textContent = data.sign_in_time;
+                }
+            } else {
+                throw new Error(data.error || 'Failed to sign in child');
+            }
+        } catch (error) {
+            console.error('Error signing in:', error);
+            alert(`Error signing in: ${error.message}`);
+        }
+    }
+
+    // Function to handle sign-out
+    async function handleSignOut(childId) {
+        if (!confirm('Are you sure you want to sign out this child?')) {
+            return;
+        }
+
+        const loadingSpinner = document.createElement('div');
+        loadingSpinner.className = 'loading-spinner';
+        loadingSpinner.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
+        
+        try {
+            const response = await fetch(`/attendance/sign-out/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ child_id: childId })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                // Find the child's card and update it
+                const card = document.querySelector(`[data-child-id="${childId}"]`);
+                if (card) {
+                    card.querySelector('.badge').textContent = 'Signed Out';
+                    card.querySelector('.badge').className = 'badge bg-warning';
+                    card.querySelector('.sign-out-btn').remove();
+                    
+                    const signInBtn = document.createElement('button');
+                    signInBtn.className = 'btn btn-sm btn-success mt-2 sign-in-btn';
+                    signInBtn.dataset.childId = childId;
+                    signInBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+                    card.appendChild(signInBtn);
+                    
+                    // Update sign-out time
+                    const signOutCell = card.querySelector('.col-6:last-child p');
+                    signOutCell.textContent = data.sign_out_time;
+                }
+            } else {
+                throw new Error(data.error || 'Failed to sign out child');
+            }
+        } catch (error) {
+            console.error('Error signing out:', error);
+            alert(`Error signing out: ${error.message}`);
+        }
+    }
+
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
 {% endblock %}
