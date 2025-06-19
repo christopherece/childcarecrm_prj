@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0">Enrolment Successful</h3>
+                </div>
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-4x text-success mb-4"></i>
+                    <h4 class="mb-4">Thank you for your enrolment!</h4>
+                    <p class="lead">Your enrolment application has been submitted successfully.</p>
+                    <p>We will review your application and contact you soon.</p>
+                    <div class="mt-4">
+                        <a href="{% url 'enrolment:enrolment_start' %}" class="btn btn-primary">
+                            Start New Enrolment
+                        </a>
+                        <a href="{% url 'attendance:dashboard' %}" class="btn btn-secondary">
+                            Return to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

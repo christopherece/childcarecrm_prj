@@ -40,6 +40,7 @@ class Teacher(models.Model):
     profile_picture = models.ImageField(upload_to='static/images/teachers/', blank=True, null=True)
     phone = models.CharField(max_length=30, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
+    is_admin = models.BooleanField(default=False, help_text='Designates whether this teacher has admin privileges.')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -48,6 +49,27 @@ class Teacher(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+        permissions = [
+            ('can_manage_enrolment', 'Can manage child enrolment'),
+            ('can_view_all_children', 'Can view all children in the center'),
+            ('can_manage_teachers', 'Can manage other teachers'),
+        ]
+    
+    def has_admin_access(self):
+        """Check if this teacher has admin privileges"""
+        return self.is_admin
+    
+    def can_manage_enrolment(self):
+        """Check if this teacher can manage enrolment"""
+        return self.is_admin
+    
+    def can_view_all_children(self):
+        """Check if this teacher can view all children"""
+        return self.is_admin
+    
+    def can_manage_teachers(self):
+        """Check if this teacher can manage other teachers"""
+        return self.is_admin
 
 class Parent(models.Model):
     name = models.CharField(max_length=100)

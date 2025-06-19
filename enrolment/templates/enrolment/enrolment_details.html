@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Enrolment Details</h3>
+                </div>
+                <div class="card-body">
+                    <h4>Child Information</h4>
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <p><strong>Name:</strong> {{ child.name }}</p>
+                            <p><strong>Date of Birth:</strong> {{ child.date_of_birth }}</p>
+                            <p><strong>Gender:</strong> {{ child.gender }}</p>
+                        </div>
+                    </div>
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ enrolment_form.center.id_for_label }}" class="form-label">Childcare Center</label>
+                            {{ enrolment_form.center }}
+                            {% if enrolment_form.center.errors %}
+                                <div class="text-danger">
+                                    {{ enrolment_form.center.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ enrolment_form.start_date.id_for_label }}" class="form-label">Start Date</label>
+                            {{ enrolment_form.start_date }}
+                            {% if enrolment_form.start_date.errors %}
+                                <div class="text-danger">
+                                    {{ enrolment_form.start_date.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ enrolment_form.attendance_days.id_for_label }}" class="form-label">Attendance Days</label>
+                            {{ enrolment_form.attendance_days }}
+                            {% if enrolment_form.attendance_days.errors %}
+                                <div class="text-danger">
+                                    {{ enrolment_form.attendance_days.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ enrolment_form.notes.id_for_label }}" class="form-label">Additional Notes</label>
+                            {{ enrolment_form.notes }}
+                            {% if enrolment_form.notes.errors %}
+                                <div class="text-danger">
+                                    {{ enrolment_form.notes.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'enrolment:emergency_contact' child.id %}" class="btn btn-secondary">Previous</a>
+                            <button type="submit" class="btn btn-primary">Submit Enrolment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

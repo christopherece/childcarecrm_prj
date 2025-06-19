@@ -37,10 +37,30 @@ class AttendanceAdmin(admin.ModelAdmin):
 
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
-    list_display = ('user', 'center', 'position', 'phone', 'email', 'created_at')
-    list_filter = ('center', 'position')
-    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'center__name', 'position')
+    list_display = (
+        'user_full_name', 'center', 'position', 'phone', 'email', 'is_admin', 'created_at'
+    )
+    list_filter = ('center', 'position', 'is_admin')
+    search_fields = (
+        'user__username', 'user__first_name', 'user__last_name', 
+        'center__name', 'position', 'email', 'phone'
+    )
     ordering = ('user__last_name', 'user__first_name')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Teacher Information', {
+            'fields': (
+                'user', 'position', 'is_admin', 'profile_picture',
+                'phone', 'email', 'center', 'rooms'
+            )
+        }),
+        ('Important dates', {
+            'fields': (
+                'created_at', 'updated_at'
+            )
+        }),
+    )
     
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -50,71 +70,16 @@ class TeacherAdmin(admin.ModelAdmin):
         return f"{obj.user.first_name} {obj.user.last_name}"
     user_full_name.short_description = 'Full Name'
 
-    def export_as_pdf(self, request, queryset):
-        """Export selected attendance records as PDF"""
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import letter
-        from reportlab.lib import colors
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-        from reportlab.lib.styles import getSampleStyleSheet
-        from django.http import HttpResponse
-        from datetime import datetime
-        
-        # Create the HTTP response with PDF headers
-        response = HttpResponse(content_type='application/pdf')
-        filename = f"attendance_records_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
-        # Create the PDF object
-        doc = SimpleDocTemplate(response, pagesize=letter)
-        elements = []
-        
-        # Add title
-        styles = getSampleStyleSheet()
-        title = Paragraph('Attendance Records', styles['Title'])
-        elements.append(title)
-        
-        # Create table data
-        data = [
-            ['Child Name', 'Parent Name', 'Center', 'Sign In Time', 'Sign Out Time', 'Status', 'Notes']
-        ]
-        
-        for record in queryset:
-            data.append([
-                record.child.name,
-                record.parent.name,
-                record.center.name if record.center else '',
-                record.sign_in.strftime('%Y-%m-%d %H:%M:%S') if record.sign_in else '',
-                record.sign_out.strftime('%Y-%m-%d %H:%M:%S') if record.sign_out else '',
-                self.get_today_status(record),
-                record.notes
-            ])
-        
-        # Create table
-        table = Table(data)
-        
-        # Add table style
-        style = TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.grey),
-            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,0), 14),
-            ('BOTTOMPADDING', (0,0), (-1,0), 12),
-            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-            ('TEXTCOLOR', (0,1), (-1,-1), colors.black),
-            ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
-            ('FONTSIZE', (0,1), (-1,-1), 12),
-            ('GRID', (0,0), (-1,-1), 1, colors.black)
-        ])
-        table.setStyle(style)
-        elements.append(table)
-        
-        # Build the PDF
-        doc.build(elements)
-        
-        return response
-    export_as_pdf.short_description = "Export selected records as PDF"
+    def has_admin_access(self, obj):
+        return obj.is_admin
+    has_admin_access.boolean = True
+    has_admin_access.short_description = 'Admin Access'
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if obj and not obj.is_admin:
+            form.base_fields['is_admin'].disabled = True
+        return form
 
     def get_today_status(self, obj):
         return obj.get_today_status()

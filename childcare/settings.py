@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'attendance',
     'reports',
     'notifications',
+    'enrolment',
     'monitor',
 ]
 
@@ -99,7 +100,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'childcare.wsgi.application'
 
 # Authentication settings
-LOGIN_REDIRECT_URL = '/reports/admin-portal/'
+LOGIN_URL = 'attendance:login'
+LOGIN_REDIRECT_URL = 'attendance:login'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases

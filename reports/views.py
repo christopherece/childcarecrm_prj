@@ -195,7 +195,6 @@ from django.contrib import messages
 from django.http import HttpResponseForbidden
 
 @login_required
-@user_passes_test(lambda u: u.is_staff or u.is_superuser)
 def admin_portal(request):
     """Admin portal view for managing attendance reports"""
     # Check if user is authenticated and has teacher profile
@@ -208,7 +207,12 @@ def admin_portal(request):
         center = teacher.center
         center_name = center.name if center else "No Center"
     except Teacher.DoesNotExist:
-        messages.error(request, "Teacher profile not found")
+        messages.error(request, "Access denied. You must be a teacher to access this page")
+        return redirect('attendance:dashboard')
+    
+    # Check if user is staff or superuser
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "Access denied. You need staff or superuser permissions")
         return redirect('attendance:dashboard')
     
     # Get today's date using timezone-aware datetime

@@ -63,36 +63,58 @@ def child_detail(request, child_id):
     }
     return render(request, 'attendance/child_detail.html', context)
 
+from django.views.decorators.csrf import csrf_protect
+
+@csrf_protect
 def login_view(request):
-    # If GET request, just show the login form
-    if request.method == 'GET':
-        return render(request, 'registration/login.html')
+    """Handle teacher login"""
+    # Clear messages before processing
+    storage = messages.get_messages(request)
+    storage.used = True
     
-    # Handle POST request
-    username = request.POST.get('username')
-    password = request.POST.get('password')
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        next_url = request.POST.get('next') or request.GET.get('next')
+        
+        if not username or not password:
+            messages.error(request, 'Please enter both username and password.')
+            return render(request, 'attendance/teacher_login.html', {
+                'username': username,
+                'password': '',  # Clear password field for security
+                'next': next_url
+            })
+        
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            try:
+                teacher = Teacher.objects.get(user=user)
+                login(request, user)
+                # Clear any existing messages
+                storage = messages.get_messages(request)
+                storage.used = True
+                
+                if next_url and next_url != 'None':
+                    return redirect(next_url)
+                return redirect('attendance:dashboard')
+            except Teacher.DoesNotExist:
+                messages.error(request, 'This account is not registered as a teacher.')
+                return render(request, 'attendance/teacher_login.html', {
+                    'username': username,
+                    'password': '',
+                    'next': next_url
+                })
+        else:
+            messages.error(request, 'Invalid username or password.')
+            return render(request, 'attendance/teacher_login.html', {
+                'username': username,
+                'password': '',  # Clear password field for security
+                'next': next_url
+            })
     
-    if not username or not password:
-        messages.error(request, 'Please enter both username and password.')
-        return render(request, 'registration/login.html', {
-            'username': username,
-            'password': ''  # Clear password field for security
-        })
-    
-    user = authenticate(request, username=username, password=password)
-    
-    if user is not None:
-        login(request, user)
-        next_url = request.POST.get('next')
-        if next_url:
-            return redirect(next_url)
-        return redirect('dashboard')
-    else:
-        messages.error(request, 'Invalid username or password.')
-        return render(request, 'registration/login.html', {
-            'username': username,
-            'password': ''  # Clear password field for security
-        })
+    next_url = request.GET.get('next')
+    return render(request, 'attendance/teacher_login.html', {'next': next_url})
 
 @login_required
 def check_sign_in(request):

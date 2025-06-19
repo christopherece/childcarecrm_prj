@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .breadcrumb-item a {
+        color: white !important;
+    }
+    .breadcrumb-item a:hover {
+        color: #fff !important;
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-pink">
+                    <li class="breadcrumb-item"><a href="{% url 'attendance:dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Enrolment</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ message.tags|cut:'success'|cut:'error'|cut:'warning'|cut:'info'|add:'smile' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            {% block enrolment_content %}
+            {% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}

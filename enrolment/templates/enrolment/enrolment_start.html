@@ -1,0 +1,75 @@
+{% extends 'enrolment/base.html' %}
+
+{% block enrolment_content %}
+<div class="card mb-4">
+    <div class="card-header bg-pink">
+        <h2 class="card-title mb-0">Childcare Enrolment</h2>
+    </div>
+    <div class="card-body">
+        <h3 class="mb-4">Step 1: Child Information</h3>
+        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ child_form.name.id_for_label }}" class="form-label">Child's Name</label>
+                    {{ child_form.name }}
+                    <div class="invalid-feedback">
+                        Please enter the child's name.
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ child_form.date_of_birth.id_for_label }}" class="form-label">Date of Birth</label>
+                    {{ child_form.date_of_birth }}
+                    <div class="invalid-feedback">
+                        Please enter the child's date of birth.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ child_form.gender.id_for_label }}" class="form-label">Gender</label>
+                    {{ child_form.gender }}
+                    <div class="invalid-feedback">
+                        Please select the child's gender.
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ child_form.emergency_contact.id_for_label }}" class="form-label">Emergency Contact</label>
+                    {{ child_form.emergency_contact }}
+                    <div class="invalid-feedback">
+                        Please enter an emergency contact name.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ child_form.emergency_phone.id_for_label }}" class="form-label">Emergency Phone</label>
+                    {{ child_form.emergency_phone }}
+                    <div class="invalid-feedback">
+                        Please enter a valid emergency phone number.
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ child_form.profile_picture.id_for_label }}" class="form-label">Profile Picture</label>
+                    {{ child_form.profile_picture }}
+                    <div class="form-text">
+                        Upload a clear photo of the child (optional)
+                    </div>
+                    <div class="invalid-feedback">
+                        Please upload a valid image file.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="fas fa-arrow-right me-2"></i>
+                    Next: Parent/Guardian Information
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends 'enrolment/base.html' %}
+
+{% block enrolment_content %}
+<div class="card">
+    <div class="card-header">
+        <h2>Emergency Contact Information</h2>
+    </div>
+    <div class="card-body">
+        <h3>Step 4: Emergency Contact Details</h3>
+        <p>Child: {{ child.name }}</p>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Next: Enrolment Details</button>
+                <a href="{% url 'enrolment:medical_info' child_id=child.id %}" class="btn btn-secondary">Back</a>
+            </div>
+        </form>
+        </form>
+    </div>
+</div>
+{% endblock %}
