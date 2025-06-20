@@ -312,7 +312,7 @@ def dashboard(request):
             'total_signed_in': len(signed_in_children),
             'total_signed_out': len(children) - len(signed_in_children),
             'recent_notifications': recent_notifications,
-            'center_name': center.name if center else 'Unknown Center',
+            'center': center,
             'children_data': children_data
         }
         

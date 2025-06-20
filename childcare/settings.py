@@ -107,16 +107,16 @@ LOGIN_REDIRECT_URL = 'attendance:login'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
+    'default1': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     },
-    'postgresql': {
+    'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'funtime_tbl',
+        'NAME': 'childcarecrm_tbl',
         'USER': 'postgres',
         'PASSWORD': 'Mmsucit1502',
-        'HOST': '192.168.10.42',
+        'HOST': 'localhost',
         'PORT': '5432',
     }
 }

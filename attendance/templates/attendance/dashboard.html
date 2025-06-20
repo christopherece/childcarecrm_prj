@@ -634,7 +634,13 @@
         <div class="col-md-6" id="right_card">
             <div class="card card-lg">
                 <div class="card-header">
-                    <h3 class="card-title mb-0">Attendance Form</h3>
+                    <h3 class="card-title mb-0">Attendance Dashboard</h3>
+                    <h5 class="card-subtitle mb-0 text-muted">{{ center.name }}</h5>
+                    <p class="card-text text-muted">
+                        Address: {{ center.address }}<br>
+                        Phone: {{ center.phone }}<br>
+                        Email: {{ center.email }}
+                    </p>
                 </div>
                 <div class="card-body">
                     <form id="attendanceForm" method="post" action="{% url 'attendance:dashboard' %}">

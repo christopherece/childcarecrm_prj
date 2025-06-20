@@ -29,9 +29,16 @@ def parent_guardian(request, child_id):
     parent = child.parent
     
     if request.method == 'POST':
-        parent_form = ParentGuardianForm(request.POST, instance=parent)
+        parent_form = ParentGuardianForm(request.POST)
         if parent_form.is_valid():
-            parent = parent_form.save()
+            parent_guardian = parent_form.save(commit=False)
+            parent_guardian.parent = parent
+            parent_guardian.child = child
+            parent_guardian.save()
+            # Update the parent's name
+            parent.name = f"{parent_guardian.first_name} {parent_guardian.last_name}"
+            parent.email = parent_guardian.email
+            parent.save()
             return redirect('enrolment:medical_info', child_id=child_id)
     else:
         parent_form = ParentGuardianForm(instance=parent)
