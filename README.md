@@ -1,4 +1,151 @@
-# Childcare Attendance System
+# Fun Time Childcare Operations Management System (COMS)
+
+A comprehensive Django-based operations management system designed specifically for childcare centers. The system streamlines daily operations including attendance tracking, enrolment management, and staff administration, all with a modern pink-themed interface and real-time functionality.
+
+## Features
+
+### Attendance Management
+- Real-time attendance tracking
+- Automated attendance reports
+- Mobile-friendly interface
+
+### Enrolment Management
+- Multi-step enrolment process
+- Child information management
+- Parent/guardian information
+- Emergency contact details
+- Medical information
+- Document management
+
+### Staff Management
+- Teacher login system
+- Profile management
+- Role-based access control
+- Dashboard with attendance overview
+
+### System Features
+- Pink-themed UI with modern design
+- Responsive Bootstrap 5 interface
+- Font Awesome icons
+- Secure authentication system
+- Custom form validation
+- Data validation and error handling
+- Message notifications
+- Static file management
+
+## Getting Started
+
+### Prerequisites
+- Python 3.13 or higher
+- Django 5.2.1
+- PostgreSQL (recommended) or SQLite
+- pip (Python package manager)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/christopherece/childcarecrm_prj.git
+cd childcarecrm_prj
+```
+
+2. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Set up the database:
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+5. Create a superuser (optional):
+```bash
+python manage.py createsuperuser
+```
+
+6. Run the development server:
+```bash
+python manage.py runserver
+```
+
+7. Access the application at `http://localhost:8000`
+
+## Project Structure
+
+```
+childcarecrm_prj/
+├── attendance/           # Attendance tracking app
+├── enrolment/           # Enrolment management app
+├── reports/             # Report generation app
+├── static/              # Static files (CSS, JS, images)
+├── templates/           # Template files
+├── manage.py            # Django management script
+└── requirements.txt     # Project dependencies
+```
+
+## Usage
+
+### Teacher Login
+1. Access the login page at `/login/`
+2. Enter your credentials
+3. After logging in, you'll be redirected to the dashboard
+
+### Attendance Monitoring
+1. Navigate to the Monitor page
+2. Use QR code scanner for check-in/check-out
+3. View real-time attendance status
+
+### Enrolment Process
+1. Start enrolment at `/enrolment/start/`
+2. Fill out child information
+3. Complete parent/guardian details
+4. Add medical information
+5. Enter emergency contact details
+
+## Form Validation
+
+All forms include:
+- Required field validation
+- Phone number format validation
+- Email format validation
+- Empty value handling
+- Placeholder text for empty fields
+- Success/error messages
+
+## Security Features
+
+- Secure password hashing
+- CSRF protection
+- Session management
+- Role-based access control
+- Input validation
+- XSS protection
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Contact
+
+Christopher Ancheta - christopher.ancheta@otago.ac.nz
+
+Project Link: https://github.com/christopherece/childcarecrm_prj Attendance System
 
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/release/python-3130/)
 [![Django 5.2.1](https://img.shields.io/badge/django-5.2.1-blue.svg)](https://www.djangoproject.com/)
