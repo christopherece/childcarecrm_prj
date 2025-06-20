@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils import timezone
+from attendance.models import Center, Child, Parent
 from django.core.validators import RegexValidator
 
 class Enrolment(models.Model):
@@ -10,10 +10,22 @@ class Enrolment(models.Model):
         ('withdrawn', 'Withdrawn'),
     ]
 
-    child = models.OneToOneField(
+    child = models.ForeignKey(
         'attendance.Child',
         on_delete=models.CASCADE,
-        related_name='enrolment'
+        related_name='enrolments'
+    )
+    center = models.ForeignKey(
+        Center,
+        on_delete=models.CASCADE,
+        related_name='enrolments'
+    )
+    room = models.ForeignKey(
+        'attendance.Room',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='enrolments'
     )
     status = models.CharField(
         max_length=20,
@@ -25,7 +37,7 @@ class Enrolment(models.Model):
     notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"Enrolment for {self.child.name}"
+        return f"{self.child.name} - {self.center.name} ({self.status})"
 
 class ParentGuardian(models.Model):
     child = models.ForeignKey(
@@ -69,6 +81,19 @@ class MedicalInformation(models.Model):
 
     def __str__(self):
         return f"Medical Info for {self.child.name}"
+
+class ChildcareCenter(models.Model):
+    name = models.CharField(max_length=100)
+    address = models.TextField()
+    phone_number = models.CharField(max_length=20)
+    email = models.EmailField()
+    capacity = models.IntegerField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
 
 class EmergencyContact(models.Model):
     child = models.ForeignKey(

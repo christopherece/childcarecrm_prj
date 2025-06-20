@@ -1,6 +1,6 @@
 from django import forms
 from .models import Enrolment, ParentGuardian, MedicalInformation, EmergencyContact
-from attendance.models import Child
+from attendance.models import Child, Center, Room
 
 class ChildForm(forms.ModelForm):
     class Meta:
@@ -11,22 +11,31 @@ class ChildForm(forms.ModelForm):
             'profile_picture': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
         }
 
-from attendance.models import Center
 
 class EnrolmentForm(forms.ModelForm):
-    center = forms.ModelChoiceField(
-        queryset=Center.objects.all(),
-        empty_label="Select a Childcare Center",
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
-    
     class Meta:
         model = Enrolment
-        fields = ['center', 'start_date', 'notes']
+        fields = ['center', 'room', 'start_date', 'notes']
         widgets = {
-            'start_date': forms.DateInput(attrs={'type': 'date'}),
-            'notes': forms.Textarea(attrs={'rows': 4}),
+            'center': forms.Select(attrs={'class': 'form-select'}),
+            'room': forms.Select(attrs={'class': 'form-select'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter rooms based on selected center
+        self.fields['room'].queryset = Room.objects.none()
+        
+        if 'center' in self.data:
+            try:
+                center_id = int(self.data.get('center'))
+                self.fields['room'].queryset = Room.objects.filter(center_id=center_id).order_by('name')
+            except (ValueError, TypeError):
+                pass  # invalid input from the client; ignore and fallback to empty room queryset
+        elif self.instance.pk:
+            self.fields['room'].queryset = Room.objects.filter(center=self.instance.center).order_by('name')
 
 class ParentGuardianForm(forms.ModelForm):
     class Meta:

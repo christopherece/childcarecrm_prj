@@ -11,6 +11,7 @@ urlpatterns = [
     path('emergency-contact/<int:child_id>/', views.emergency_contact, name='emergency_contact'),
     path('enrolment-details/<int:child_id>/', views.enrolment_details, name='enrolment_details'),
     path('success/', views.enrolment_success, name='success'),
+    path('api/rooms/<int:center_id>/', views.get_rooms, name='api_rooms'),
 
     # Admin Views
     path('list/', views.enrolment_list, name='enrolment_list'),
