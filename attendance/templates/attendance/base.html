@@ -37,6 +37,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {% if request.path == '/manage-children/' or 'manage_children' in request.path %}active{% endif %}" href="{% url 'attendance:manage_children' %}">
+                                <i class="fas fa-users"></i> Manage Children
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {% if request.path == '/reports/admin-portal/' or 'admin_portal' in request.path %}active{% endif %}" href="{% url 'reports:admin_portal' %}">Admin Portal</a>
                         </li>
                     {% endif %}

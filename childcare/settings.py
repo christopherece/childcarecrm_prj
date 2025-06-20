@@ -116,7 +116,7 @@ DATABASES = {
         'NAME': 'childcarecrm_tbl',
         'USER': 'postgres',
         'PASSWORD': 'Mmsucit1502',
-        'HOST': 'localhost',
+        'HOST': '192.168.10.42',
         'PORT': '5432',
     }
 }

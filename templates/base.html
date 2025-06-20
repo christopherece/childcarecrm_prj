@@ -34,6 +34,11 @@
                                 <i class="fas fa-user-plus"></i> Enrolment
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'manage-children' in request.path %}active{% endif %}" href="{% url 'attendance:manage_children' %}">
+                                <i class="fas fa-users"></i> Manage Children
+                            </a>
+                        </li>
                     {% endif %}
                     {% if user.is_authenticated %}
                         <li class="nav-item">

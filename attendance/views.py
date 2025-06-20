@@ -11,7 +11,7 @@ from .models import Child, Attendance
 # Set default timezone to New Zealand
 NZ_TIMEZONE = pytz.timezone('Pacific/Auckland')
 
-from .models import Teacher, Center, Child, Attendance
+from .models import Teacher, Center, Child, Attendance, Room
 from .forms import TeacherProfileForm
 from django.template.loader import render_to_string
 from django.contrib import messages
@@ -48,6 +48,21 @@ def child_detail(request, child_id):
     child = get_object_or_404(Child, id=child_id)
     
     # Get today's date
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def manage_children(request):
+    """View to manage children by room"""
+    # Get all rooms and their children
+    rooms = Room.objects.all().prefetch_related('children')
+    
+    context = {
+        'rooms': rooms,
+        'today': timezone.now().date()
+    }
+    return render(request, 'attendance/manage_children.html', context)
+
+# Original imports continue below...
     today = timezone.now().date()
     
     # Get attendance records for this child

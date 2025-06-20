@@ -16,4 +16,5 @@ urlpatterns = [
     path('check-sign-in/', views.check_sign_in, name='check_sign_in'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='sign_out'),
+    path('manage-children/', views.manage_children, name='manage_children'),
 ]

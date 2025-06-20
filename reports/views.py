@@ -26,6 +26,7 @@ def child_details(request, child_id):
         # Update child information
         child.name = request.POST.get('child_name', child.name)
         child.gender = request.POST.get('gender', child.gender)
+        child.date_of_birth = request.POST.get('date_of_birth', child.date_of_birth)
         child.allergies = request.POST.get('allergies', child.allergies)
         child.medical_conditions = request.POST.get('medical_conditions', child.medical_conditions)
         child.emergency_contact = request.POST.get('emergency_contact', child.emergency_contact)
@@ -46,8 +47,10 @@ def child_details(request, child_id):
                 child.save()
                 parent.save()
                 messages.success(request, 'Child information updated successfully')
+                return redirect('reports:child_details', child_id=child.id)
         except Exception as e:
             messages.error(request, f'Error updating information: {str(e)}')
+            return redirect('reports:child_details', child_id=child.id)
             
     # Get recent attendance records
     thirty_days_ago = timezone.now().date() - timedelta(days=30)
