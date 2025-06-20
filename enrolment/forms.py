@@ -1,8 +1,21 @@
 from django import forms
+from django.core.validators import RegexValidator
 from .models import Enrolment, ParentGuardian, MedicalInformation, EmergencyContact
 from attendance.models import Child, Center, Room
 
 class ChildForm(forms.ModelForm):
+    emergency_phone = forms.CharField(
+        max_length=20,
+        validators=[
+            RegexValidator(
+                regex=r'^\+?1?\d{9,15}$',
+                message='Phone number must be entered in the format: "+1234567890". Up to 15 digits allowed.'
+            )
+        ],
+        widget=forms.TextInput(attrs={'placeholder': 'e.g. +64211234567'}),
+        required=True
+    )
+
     class Meta:
         model = Child
         fields = ['name', 'date_of_birth', 'gender', 'emergency_contact', 'emergency_phone', 'profile_picture']
@@ -38,6 +51,18 @@ class EnrolmentForm(forms.ModelForm):
             self.fields['room'].queryset = Room.objects.filter(center=self.instance.center).order_by('name')
 
 class ParentGuardianForm(forms.ModelForm):
+    phone_number = forms.CharField(
+        max_length=20,
+        validators=[
+            RegexValidator(
+                regex=r'^\+?1?\d{9,15}$',
+                message='Phone number must be entered in the format: "+1234567890". Up to 15 digits allowed.'
+            )
+        ],
+        widget=forms.TextInput(attrs={'placeholder': 'e.g. +64211234567'}),
+        required=True
+    )
+
     class Meta:
         model = ParentGuardian
         fields = ['relationship', 'first_name', 'last_name', 'email', 'phone_number', 'address', 'emergency_contact']

@@ -44,10 +44,31 @@ def parent_guardian(request, child_id):
             parent_guardian = parent_form.save(commit=False)
             parent_guardian.parent = parent
             parent_guardian.child = child
+            
+            # Handle empty values by checking if the field exists
+            first_name = parent_form.cleaned_data.get('first_name', '')
+            last_name = parent_form.cleaned_data.get('last_name', '')
+            email = parent_form.cleaned_data.get('email', '')
+            phone_number = parent_form.cleaned_data.get('phone_number', '')
+            
+            # Only update fields if they have values
+            if first_name:
+                parent_guardian.first_name = first_name
+            if last_name:
+                parent_guardian.last_name = last_name
+            if email:
+                parent_guardian.email = email
+            if phone_number:
+                parent_guardian.phone_number = phone_number
+            
             parent_guardian.save()
-            # Update the parent's name
-            parent.name = f"{parent_guardian.first_name} {parent_guardian.last_name}"
-            parent.email = parent_guardian.email
+            
+            # Update the parent's name only if we have both first and last name
+            if first_name and last_name:
+                parent.name = f"{first_name} {last_name}"
+            if email:
+                parent.email = email
+            
             parent.save()
             return redirect('enrolment:medical_info', child_id=child_id)
     else:

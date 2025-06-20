@@ -33,8 +33,8 @@ from django.contrib.auth import authenticate, login, logout
 def logout_view(request):
     """Handle user logout"""
     if request.method in ['GET', 'POST']:
-        logout(request)
         messages.success(request, 'You have been logged out successfully.')
+        logout(request)
         return redirect('attendance:login')
     return redirect('attendance:login')
 
