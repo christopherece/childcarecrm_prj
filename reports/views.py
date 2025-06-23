@@ -66,8 +66,11 @@ def child_details(request, child_id):
     
     # Prepare medical information
     medical_info = {
-        'allergies': child.allergies if child.allergies else '',
-        'medical_conditions': child.medical_conditions if child.medical_conditions else '',
+        'allergies': getattr(child, 'medical_info', {}).allergies if hasattr(child, 'medical_info') else '',
+        'medical_conditions': getattr(child, 'medical_info', {}).medical_conditions if hasattr(child, 'medical_info') else '',
+        'medications': getattr(child, 'medical_info', {}).medications if hasattr(child, 'medical_info') else '',
+        'medical_notes': getattr(child, 'medical_info', {}).medical_notes if hasattr(child, 'medical_info') else '',
+        'immunization_record': getattr(child, 'medical_info', {}).immunization_record if hasattr(child, 'medical_info') else None,
         'emergency_contact': child.emergency_contact,
         'emergency_phone': child.emergency_phone
     }

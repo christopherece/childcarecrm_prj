@@ -1,11 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.contrib import messages
 from django.urls import reverse
+from django.utils import timezone
+from .models import Enrolment, Child, ParentGuardian, MedicalInformation, EmergencyContact
+from .forms import EnrolmentForm, ChildForm, ParentGuardianForm, MedicalInformationForm, EmergencyContactForm
 from attendance.decorators import admin_required
-from .models import Enrolment, ParentGuardian, MedicalInformation, EmergencyContact
-from .forms import EnrolmentForm, ParentGuardianForm, MedicalInformationForm, EmergencyContactForm, ChildForm
-from attendance.models import Child, Parent, Center, Room
+from attendance.models import Center, Room, Parent
+import json
+from datetime import datetime, date
 
 @admin_required
 def get_rooms(request, center_id):
@@ -21,132 +24,285 @@ def enrolment_start(request):
     if request.method == 'POST':
         child_form = ChildForm(request.POST, request.FILES)
         if child_form.is_valid():
-            # Create a temporary parent for the child
-            parent = Parent.objects.create(
-                name=f"Parent for {child_form.cleaned_data['name']}",
-                email=f"{child_form.cleaned_data['name'].lower().replace(' ', '')}@temp.com"
-            )
-            child = child_form.save(commit=False)
-            child.parent = parent
-            child.save()
-            return redirect('enrolment:parent_guardian', child_id=child.id)
+            # Get cleaned data
+            cleaned_data = child_form.cleaned_data
+            
+            # Create child data dictionary with proper date handling
+            child_data = {
+                'name': cleaned_data['name'],
+                'date_of_birth': cleaned_data['date_of_birth'].isoformat(),
+                'gender': cleaned_data['gender'],
+                'emergency_contact': cleaned_data['emergency_contact'],
+                'emergency_phone': cleaned_data['emergency_phone']
+            }
+            
+            # Store in session
+            enrolment_data = {
+                'child': child_data,
+                'step': 'start'
+            }
+            
+            # Convert to JSON string
+            request.session['enrolment_data'] = json.dumps(enrolment_data)
+            
+            return redirect('enrolment:parent_guardian')
+        else:
+            messages.error(request, "Please correct the errors below.")
     else:
         child_form = ChildForm()
     return render(request, 'enrolment/enrolment_start.html', {'child_form': child_form})
 
-def parent_guardian(request, child_id):
-    child = get_object_or_404(Child, id=child_id)
-    parent = child.parent
+@admin_required
+def parent_guardian(request):
+    # Get session data
+    enrolment_data_json = request.session.get('enrolment_data', '{}')
+    try:
+        enrolment_data = json.loads(enrolment_data_json)
+    except json.JSONDecodeError:
+        messages.error(request, "Invalid session data. Please start the enrolment process again.")
+        return redirect('enrolment:enrolment_start')
+    
+    # Validate child data
+    child_data = enrolment_data.get('child', {})
+    if not all([child_data.get('name'), child_data.get('date_of_birth'), child_data.get('gender')]):
+        messages.error(request, "Child information is incomplete. Please go back and complete the child information step.")
+        return redirect('enrolment:enrolment_start')
     
     if request.method == 'POST':
         parent_form = ParentGuardianForm(request.POST)
         if parent_form.is_valid():
-            parent_guardian = parent_form.save(commit=False)
-            parent_guardian.parent = parent
-            parent_guardian.child = child
+            # Update enrolment data
+            enrolment_data['parent_guardian'] = parent_form.cleaned_data
+            enrolment_data['step'] = 'parent_guardian'
             
-            # Handle empty values by checking if the field exists
-            first_name = parent_form.cleaned_data.get('first_name', '')
-            last_name = parent_form.cleaned_data.get('last_name', '')
-            email = parent_form.cleaned_data.get('email', '')
-            phone_number = parent_form.cleaned_data.get('phone_number', '')
-            
-            # Only update fields if they have values
-            if first_name:
-                parent_guardian.first_name = first_name
-            if last_name:
-                parent_guardian.last_name = last_name
-            if email:
-                parent_guardian.email = email
-            if phone_number:
-                parent_guardian.phone_number = phone_number
-            
-            parent_guardian.save()
-            
-            # Update the parent's name only if we have both first and last name
-            if first_name and last_name:
-                parent.name = f"{first_name} {last_name}"
-            if email:
-                parent.email = email
-            
-            parent.save()
-            return redirect('enrolment:medical_info', child_id=child_id)
+            # Store updated data
+            request.session['enrolment_data'] = json.dumps(enrolment_data)
+            return redirect('enrolment:medical_info')
+        else:
+            messages.error(request, "Please correct the errors below.")
     else:
-        parent_form = ParentGuardianForm(instance=parent)
+        parent_form = ParentGuardianForm()
+    
     return render(request, 'enrolment/parent_guardian.html', {
-        'child': child,
-        'parent_form': parent_form
+        'parent_form': parent_form,
+        'child_data': child_data
     })
 
-def medical_info(request, child_id):
-    child = get_object_or_404(Child, id=child_id)
+@admin_required
+def medical_info(request):
+    enrolment_data_json = request.session.get('enrolment_data', '{}')
+    try:
+        enrolment_data = json.loads(enrolment_data_json)
+    except json.JSONDecodeError:
+        messages.error(request, "Invalid session data. Please start the enrolment process again.")
+        return redirect('enrolment:enrolment_start')
     
     if request.method == 'POST':
         medical_form = MedicalInformationForm(request.POST, request.FILES)
         if medical_form.is_valid():
-            medical_info = medical_form.save(commit=False)
-            medical_info.child = child
-            medical_info.save()
-            return redirect('enrolment:emergency_contact', child_id=child_id)
+            # Get cleaned data including file
+            medical_data = medical_form.cleaned_data
+            
+            # Convert file data to string for JSON serialization
+            if 'immunization_record' in medical_data:
+                medical_data['immunization_record'] = str(medical_data['immunization_record'])
+            
+            enrolment_data['medical_info'] = medical_data
+            enrolment_data['step'] = 'medical_info'
+            request.session['enrolment_data'] = json.dumps(enrolment_data)
+            return redirect('enrolment:emergency_contact')
+        else:
+            messages.error(request, "Please correct the errors below.")
     else:
         medical_form = MedicalInformationForm()
+    
     return render(request, 'enrolment/medical_info.html', {
-        'child': child,
-        'medical_form': medical_form
+        'medical_form': medical_form,
+        'child_data': enrolment_data.get('child', {})
     })
 
-def emergency_contact(request, child_id):
-    child = get_object_or_404(Child, id=child_id)
-    # Get the first emergency contact for this child if it exists
+@admin_required
+def emergency_contact(request):
+    enrolment_data_json = request.session.get('enrolment_data', '{}')
     try:
-        emergency_contact = EmergencyContact.objects.filter(child=child).first()
-    except EmergencyContact.DoesNotExist:
-        emergency_contact = None
+        enrolment_data = json.loads(enrolment_data_json)
+    except json.JSONDecodeError:
+        messages.error(request, "Invalid session data. Please start the enrolment process again.")
+        return redirect('enrolment:enrolment_start')
     
     if request.method == 'POST':
-        emergency_form = EmergencyContactForm(request.POST, instance=emergency_contact)
-        if emergency_form.is_valid():
-            emergency = emergency_form.save(commit=False)
-            emergency.child = child
-            emergency.save()
-            return redirect('enrolment:enrolment_details', child_id=child_id)
+        contact_form = EmergencyContactForm(request.POST)
+        if contact_form.is_valid():
+            enrolment_data['emergency_contact'] = contact_form.cleaned_data
+            enrolment_data['step'] = 'emergency_contact'
+            request.session['enrolment_data'] = json.dumps(enrolment_data)
+            return redirect('enrolment:enrolment_details')
+        else:
+            messages.error(request, "Please correct the errors below.")
     else:
-        emergency_form = EmergencyContactForm(instance=emergency_contact)
+        contact_form = EmergencyContactForm()
+    
     return render(request, 'enrolment/emergency_contact.html', {
-        'child': child,
-        'form': emergency_form
+        'contact_form': contact_form,
+        'child_data': enrolment_data.get('child', {})
     })
 
-def enrolment_details(request, child_id):
-    child = get_object_or_404(Child, id=child_id)
-    centers = Center.objects.all()
+@admin_required
+def enrolment_details(request):
+    enrolment_data_json = request.session.get('enrolment_data', '{}')
+    try:
+        enrolment_data = json.loads(enrolment_data_json)
+    except json.JSONDecodeError:
+        messages.error(request, "Invalid session data. Please start the enrolment process again.")
+        return redirect('enrolment:enrolment_start')
     
     if request.method == 'POST':
         enrolment_form = EnrolmentForm(request.POST)
         if enrolment_form.is_valid():
-            enrolment = enrolment_form.save(commit=False)
-            enrolment.child = child
-            enrolment.save()
-            
-            # Update the child's center and room
-            child.center = enrolment.center
-            child.room = enrolment.room
-            child.save()
-            
-            messages.success(request, 'Enrolment application submitted successfully!')
-            return redirect('enrolment:success')
+            try:
+                # Get session data
+                enrolment_data_json = request.session.get('enrolment_data', '{}')
+                enrolment_data = json.loads(enrolment_data_json)
+                
+                # Validate required data
+                if not all([
+                    enrolment_data.get('child', {}).get('name'),
+                    enrolment_data.get('child', {}).get('date_of_birth'),
+                    enrolment_data.get('child', {}).get('gender'),
+                    enrolment_data.get('parent_guardian', {}).get('email')
+                ]):
+                    messages.error(request, "Missing required information")
+                    return redirect('enrolment:enrolment_start')
+                
+                # Create parent
+                parent_data = enrolment_data.get('parent_guardian', {})
+                parent, created = Parent.objects.get_or_create(
+                    email=parent_data.get('email'),
+                    defaults={
+                        'name': f"{parent_data.get('first_name')} {parent_data.get('last_name')}",
+                        'phone': parent_data.get('phone_number'),
+                        'address': parent_data.get('address')
+                    }
+                )
+                
+                # Create child
+                child_data = enrolment_data.get('child', {})
+                child = Child.objects.create(
+                    name=child_data.get('name'),
+                    date_of_birth=datetime.fromisoformat(child_data.get('date_of_birth')).date(),
+                    gender=child_data.get('gender'),
+                    emergency_contact=child_data.get('emergency_contact'),
+                    emergency_phone=child_data.get('emergency_phone'),
+                    parent=parent,
+                    center=Center.objects.get(id=enrolment_data.get('center_id')),
+                    room=Room.objects.get(id=enrolment_data.get('room_id'))
+                )
+                
+                # Create medical info
+                medical_data = enrolment_data.get('medical_info', {})
+                try:
+                    medical_info = MedicalInformation.objects.create(
+                        child=child,
+                        allergies=medical_data.get('allergies', ''),
+                        medical_conditions=medical_data.get('medical_conditions', ''),
+                        medications=medical_data.get('medications', ''),
+                        medical_notes=medical_data.get('medical_notes', '')
+                    )
+                    
+                    # Save immunization record if provided
+                    immunization_record = medical_data.get('immunization_record')
+                    if immunization_record:
+                        medical_info.immunization_record = immunization_record
+                        medical_info.save()
+                    
+                except Exception as e:
+                    messages.error(request, f"Error saving medical information: {str(e)}")
+                    return redirect('enrolment:medical_info')
+                
+                # Create emergency contact
+                contact_data = enrolment_data.get('emergency_contact', {})
+                EmergencyContact.objects.create(
+                    child=child,
+                    first_name=contact_data.get('first_name'),
+                    last_name=contact_data.get('last_name'),
+                    relationship=contact_data.get('relationship'),
+                    phone_number=contact_data.get('phone_number'),
+                    email=contact_data.get('email'),
+                    address=contact_data.get('address'),
+                    can_pickup=contact_data.get('can_pickup', False)
+                )
+                
+                # Get center and room from form data
+                center = enrolment_form.cleaned_data.get('center')
+                room = enrolment_form.cleaned_data.get('room')
+                
+                # Create enrolment with center and room
+                enrolment = enrolment_form.save(commit=False)
+                enrolment.child = child
+                enrolment.save()
+                
+                # Update child with center information
+                child.center = center
+                child.room = room
+                child.save()
+                
+                # Clear session data
+                del request.session['enrolment_data']
+                
+                return redirect('enrolment:success')
+
+            except Exception as e:
+                messages.error(request, f"An error occurred: {str(e)}")
+                return redirect('enrolment:enrolment_start')
+
+        else:
+            messages.error(request, "Please correct the errors below.")
+            return render(request, 'enrolment/enrolment_details.html', {
+                'enrolment_form': enrolment_form,
+                'child_data': enrolment_data.get('child', {})
+            })
     else:
         enrolment_form = EnrolmentForm()
+        return render(request, 'enrolment/enrolment_details.html', {
+            'enrolment_form': enrolment_form,
+            'child_data': enrolment_data.get('child', {})
+        })
+    # Get all centers for the dropdown
+    centers = Center.objects.all()
     
+    # Get child data from session
+    child_data = enrolment_data.get('child', {})
+    
+    # Convert date string back to date object if present
+    if isinstance(child_data, dict) and 'date_of_birth' in child_data:
+        try:
+            dob_str = child_data['date_of_birth']
+            if dob_str:  # Check if string is not empty
+                child_data['date_of_birth'] = datetime.strptime(dob_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            pass
+
+    # Format date for display
+    dob_display = child_data.get('date_of_birth', '')
+    if isinstance(dob_display, date):
+        dob_display = dob_display.strftime('%Y-%m-%d')
+    else:
+        dob_display = ''
+
     return render(request, 'enrolment/enrolment_details.html', {
-        'child': child,
         'enrolment_form': enrolment_form,
-        'centers': centers
+        'child_data': child_data,
+        'centers': centers,
+        'child_name': child_data.get('name', ''),
+        'child_dob': dob_display if dob_display else '',
+        'child_gender': child_data.get('gender', '')
     })
 
-def enrolment_success(request):
+@admin_required
+def success(request):
     return render(request, 'enrolment/enrolment_success.html')
 
+@admin_required
 def enrolment_list(request):
     enrolments = Enrolment.objects.all().order_by('-enrolment_date')
     return render(request, 'enrolment/enrolment_list.html', {'enrolments': enrolments})

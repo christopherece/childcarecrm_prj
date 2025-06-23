@@ -15,13 +15,24 @@ class ChildForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'placeholder': 'e.g. +64211234567'}),
         required=True
     )
+    center = forms.ModelChoiceField(
+        queryset=Center.objects.all(),
+        empty_label="Select a center",
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=True
+    )
 
     class Meta:
         model = Child
-        fields = ['name', 'date_of_birth', 'gender', 'emergency_contact', 'emergency_phone', 'profile_picture']
+        fields = ['name', 'date_of_birth', 'gender', 'emergency_contact', 'emergency_phone', 'profile_picture', 'center']
         widgets = {
-            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
-            'profile_picture': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'gender': forms.Select(attrs={'class': 'form-select'}),
+            'emergency_contact': forms.TextInput(attrs={'class': 'form-control'}),
+            'emergency_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. +64211234567'}),
+            'profile_picture': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'center': forms.Select(attrs={'class': 'form-select'}),
         }
 
 
@@ -82,9 +93,30 @@ class MedicalInformationForm(forms.ModelForm):
         }
 
 class EmergencyContactForm(forms.ModelForm):
+    phone_number = forms.CharField(
+        max_length=20,
+        validators=[
+            RegexValidator(
+                regex=r'^\+?1?\d{9,15}$',
+                message='Phone number must be entered in the format: "+1234567890". Up to 15 digits allowed.'
+            )
+        ],
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. +64211234567'}),
+        required=True
+    )
+
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Enter email address'}),
+        required=True
+    )
+
     class Meta:
         model = EmergencyContact
-        fields = ['first_name', 'last_name', 'relationship', 'phone_number', 'address', 'can_pickup']
+        fields = ['first_name', 'last_name', 'relationship', 'phone_number', 'address', 'email', 'can_pickup']
         widgets = {
-            'address': forms.Textarea(attrs={'rows': 3}),
+            'relationship': forms.Select(attrs={'class': 'form-select'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter first name'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter last name'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'can_pickup': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }

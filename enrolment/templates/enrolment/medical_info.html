@@ -121,7 +121,7 @@
                 <ol class="breadcrumb bg-pink">
                     <li class="breadcrumb-item"><a href="{% url 'attendance:dashboard' %}">Dashboard</a></li>
                     <li class="breadcrumb-item"><a href="{% url 'enrolment:enrolment_start' %}">Enrolment</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'enrolment:parent_guardian' child_id=child.id %}">Parent/Guardian</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'enrolment:parent_guardian' %}">Parent/Guardian</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Medical Information</li>
                 </ol>
             </nav>
@@ -145,69 +145,56 @@
                                     <div class="form-group">
                                         <textarea class="form-control" id="{{ medical_form.allergies.id_for_label }}" name="{{ medical_form.allergies.html_name }}" rows="3">{{ medical_form.allergies.value }}</textarea>
                                         <div class="form-text">
-                                            List any known allergies (food, environmental, etc.)
+                                            Please list any allergies your child has (e.g., peanuts, bee stings, medications)
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <div class="row">
                                 <div class="col-12 mb-3">
                                     <label for="{{ medical_form.medical_conditions.id_for_label }}" class="form-label">Medical Conditions</label>
                                     <div class="form-group">
                                         <textarea class="form-control" id="{{ medical_form.medical_conditions.id_for_label }}" name="{{ medical_form.medical_conditions.html_name }}" rows="3">{{ medical_form.medical_conditions.value }}</textarea>
                                         <div class="form-text">
-                                            List any medical conditions or health concerns
+                                            Please list any medical conditions your child has (e.g., asthma, diabetes, epilepsy)
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <div class="row">
                                 <div class="col-12 mb-3">
                                     <label for="{{ medical_form.medications.id_for_label }}" class="form-label">Medications</label>
                                     <div class="form-group">
                                         <textarea class="form-control" id="{{ medical_form.medications.id_for_label }}" name="{{ medical_form.medications.html_name }}" rows="3">{{ medical_form.medications.value }}</textarea>
                                         <div class="form-text">
-                                            List any medications the child is currently taking
+                                            Please list any medications your child is currently taking
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <div class="row">
                                 <div class="col-12 mb-3">
-                                    <label for="{{ medical_form.medical_notes.id_for_label }}" class="form-label">Additional Medical Notes</label>
+                                    <label for="{{ medical_form.medical_notes.id_for_label }}" class="form-label">Medical Notes</label>
                                     <div class="form-group">
                                         <textarea class="form-control" id="{{ medical_form.medical_notes.id_for_label }}" name="{{ medical_form.medical_notes.html_name }}" rows="3">{{ medical_form.medical_notes.value }}</textarea>
                                         <div class="form-text">
-                                            Any other important medical information
+                                            Any additional medical information we should know about
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <div class="row">
                                 <div class="col-12 mb-3">
                                     <label for="{{ medical_form.immunization_record.id_for_label }}" class="form-label">Immunization Record</label>
                                     <div class="form-group">
-                                        <input type="file" class="form-control" id="{{ medical_form.immunization_record.id_for_label }}" name="{{ medical_form.immunization_record.html_name }}" accept="application/pdf,image/*">
+                                        <input type="file" class="form-control" id="{{ medical_form.immunization_record.id_for_label }}" name="{{ medical_form.immunization_record.html_name }}">
                                         <div class="form-text">
-                                            Upload the child's immunization record
+                                            Please upload your child's immunization record (PDF or image files only)
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
                             <div class="mt-4">
                                 <div class="d-flex justify-content-between">
-                                    <a href="{% url 'enrolment:parent_guardian' child_id=child.id %}" class="btn btn-secondary">
+                                    <a href="{% url 'enrolment:parent_guardian' %}" class="btn btn-secondary">
                                         <i class="fas fa-arrow-left me-2"></i>
                                         Back
                                     </a>
                                     <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-arrow-right me-2"></i>
-                                        Next: Emergency Contact
+                                        Next
+                                        <i class="fas fa-arrow-right ms-2"></i>
                                     </button>
                                 </div>
                             </div>

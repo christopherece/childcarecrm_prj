@@ -139,7 +139,7 @@
                 <ol class="breadcrumb bg-pink">
                     <li class="breadcrumb-item"><a href="{% url 'attendance:dashboard' %}">Dashboard</a></li>
                     <li class="breadcrumb-item"><a href="{% url 'enrolment:enrolment_start' %}">Enrolment</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Parent/Guardian Information</li>
+                    <li class="breadcrumb-item active" aria-current="page">Parent/Guardian</li>
                 </ol>
             </nav>
         </div>
@@ -154,24 +154,57 @@
                         <h5 class="card-subtitle mb-0 text-white">Step 2 of 4: Parent/Guardian Information</h5>
                     </div>
                     <div class="card-body">
+                        <div class="alert alert-info mb-4">
+                            <h5>Child Information</h5>
+                            <p><strong>Name:</strong> {{ child_data.name }}</p>
+                            <p><strong>Date of Birth:</strong> {{ child_data.date_of_birth }}</p>
+                            <p><strong>Gender:</strong> {{ child_data.gender }}</p>
+                            <p><strong>Emergency Contact:</strong> {{ child_data.emergency_contact }}</p>
+                            <p><strong>Emergency Phone:</strong> {{ child_data.emergency_phone }}</p>
+                        </div>
                         <form method="post" class="needs-validation" novalidate>
                             {% csrf_token %}
+                            {% if parent_form.non_field_errors %}
+                                <div class="alert alert-danger">
+                                    {% for error in parent_form.non_field_errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="{{ parent_form.relationship.id_for_label }}" class="form-label">Relationship to Child</label>
                                     <div class="form-group">
-                                        <select class="form-control" id="{{ parent_form.relationship.id_for_label }}" name="{{ parent_form.relationship.html_name }}" required>
+                                        <select class="form-control {% if parent_form.relationship.errors %}is-invalid{% endif %}" 
+                                                id="{{ parent_form.relationship.id_for_label }}" 
+                                                name="{{ parent_form.relationship.html_name }}" 
+                                                required>
                                             <option value="">Select relationship</option>
                                             {% for value, label in parent_form.fields.relationship.choices %}
                                                 <option value="{{ value }}" {% if parent_form.relationship.value == value %}selected{% endif %}>{{ label }}</option>
                                             {% endfor %}
                                         </select>
+                                        {% if parent_form.relationship.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ parent_form.relationship.errors.0 }}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="{{ parent_form.first_name.id_for_label }}" class="form-label">First Name</label>
                                     <div class="form-group">
-                                        <input type="text" class="form-control" id="{{ parent_form.first_name.id_for_label }}" name="{{ parent_form.first_name.html_name }}" placeholder="Enter first name" required>
+                                        <input type="text" class="form-control {% if parent_form.first_name.errors %}is-invalid{% endif %}" 
+                                               id="{{ parent_form.first_name.id_for_label }}" 
+                                               name="{{ parent_form.first_name.html_name }}" 
+                                               value="{{ parent_form.first_name.value|default_if_none:"" }}" 
+                                               required>
+                                        {% if parent_form.first_name.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ parent_form.first_name.errors.0 }}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -180,13 +213,31 @@
                                 <div class="col-md-6 mb-3">
                                     <label for="{{ parent_form.last_name.id_for_label }}" class="form-label">Last Name</label>
                                     <div class="form-group">
-                                        <input type="text" class="form-control" id="{{ parent_form.last_name.id_for_label }}" name="{{ parent_form.last_name.html_name }}" placeholder="Enter last name" required>
+                                        <input type="text" class="form-control {% if parent_form.last_name.errors %}is-invalid{% endif %}" 
+                                               id="{{ parent_form.last_name.id_for_label }}" 
+                                               name="{{ parent_form.last_name.html_name }}" 
+                                               value="{{ parent_form.last_name.value|default_if_none:"" }}" 
+                                               required>
+                                        {% if parent_form.last_name.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ parent_form.last_name.errors.0 }}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label for="{{ parent_form.email.id_for_label }}" class="form-label">Email Address</label>
+                                    <label for="{{ parent_form.email.id_for_label }}" class="form-label">Email</label>
                                     <div class="form-group">
-                                        <input type="email" class="form-control" id="{{ parent_form.email.id_for_label }}" name="{{ parent_form.email.html_name }}" placeholder="Enter email address" required>
+                                        <input type="email" class="form-control {% if parent_form.email.errors %}is-invalid{% endif %}" 
+                                               id="{{ parent_form.email.id_for_label }}" 
+                                               name="{{ parent_form.email.html_name }}" 
+                                               value="{{ parent_form.email.value|default_if_none:"" }}" 
+                                               required>
+                                        {% if parent_form.email.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ parent_form.email.errors.0 }}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -195,22 +246,33 @@
                                 <div class="col-md-6 mb-3">
                                     <label for="{{ parent_form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
                                     <div class="form-group">
-                                        <input type="tel" class="form-control" id="{{ parent_form.phone_number.id_for_label }}" name="{{ parent_form.phone_number.html_name }}" placeholder="Enter phone number" required>
+                                        <input type="tel" class="form-control {% if parent_form.phone_number.errors %}is-invalid{% endif %}" 
+                                               id="{{ parent_form.phone_number.id_for_label }}" 
+                                               name="{{ parent_form.phone_number.html_name }}" 
+                                               value="{{ parent_form.phone_number.value|default_if_none:"" }}" 
+                                               required>
+                                        <div class="form-text">
+                                            Format: +64211234567
+                                        </div>
+                                        {% if parent_form.phone_number.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ parent_form.phone_number.errors.0 }}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="{{ parent_form.address.id_for_label }}" class="form-label">Address</label>
                                     <div class="form-group">
-                                        <textarea class="form-control" id="{{ parent_form.address.id_for_label }}" name="{{ parent_form.address.html_name }}" rows="3">{{ parent_form.address.value }}</textarea>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="{{ parent_form.emergency_contact.id_for_label }}" name="{{ parent_form.emergency_contact.html_name }}" {% if parent_form.emergency_contact.value %}checked{% endif %}>
-                                        <label class="form-check-label" for="{{ parent_form.emergency_contact.id_for_label }}">I am the emergency contact for this child</label>
+                                        <textarea class="form-control {% if parent_form.address.errors %}is-invalid{% endif %}" 
+                                                  id="{{ parent_form.address.id_for_label }}" 
+                                                  name="{{ parent_form.address.html_name }}" 
+                                                  rows="3">{{ parent_form.address.value|default_if_none:"" }}</textarea>
+                                        {% if parent_form.address.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ parent_form.address.errors.0 }}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -222,8 +284,8 @@
                                         Back
                                     </a>
                                     <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-arrow-right me-2"></i>
                                         Next: Medical Information
+                                        <i class="fas fa-arrow-right ms-2"></i>
                                     </button>
                                 </div>
                             </div>

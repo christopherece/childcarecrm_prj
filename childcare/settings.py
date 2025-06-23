@@ -56,6 +56,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 #     BASE_DIR / 'additional_static',
 # ]
 
+# Session settings
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

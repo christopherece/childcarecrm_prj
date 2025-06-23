@@ -73,10 +73,10 @@ class MedicalInformation(models.Model):
         on_delete=models.CASCADE,
         related_name='medical_info'
     )
-    allergies = models.TextField(blank=True)
-    medical_conditions = models.TextField(blank=True)
-    medications = models.TextField(blank=True)
-    medical_notes = models.TextField(blank=True)
+    allergies = models.TextField()
+    medical_conditions = models.TextField()
+    medications = models.TextField()
+    medical_notes = models.TextField()
     immunization_record = models.FileField(upload_to='immunization_records/', blank=True, null=True)
 
     def __str__(self):
@@ -96,6 +96,17 @@ class ChildcareCenter(models.Model):
         return self.name
 
 class EmergencyContact(models.Model):
+    RELATIONSHIP_CHOICES = [
+        ('parent', 'Parent'),
+        ('grandparent', 'Grandparent'),
+        ('aunt', 'Aunt'),
+        ('uncle', 'Uncle'),
+        ('sibling', 'Sibling'),
+        ('cousin', 'Cousin'),
+        ('family_friend', 'Family Friend'),
+        ('other', 'Other')
+    ]
+    
     child = models.ForeignKey(
         'attendance.Child',
         on_delete=models.CASCADE,
@@ -103,7 +114,10 @@ class EmergencyContact(models.Model):
     )
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    relationship = models.CharField(max_length=50)
+    relationship = models.CharField(
+        max_length=50,
+        choices=RELATIONSHIP_CHOICES
+    )
     phone_regex = RegexValidator(
         regex=r'^\+?1?\d{9,15}$',
         message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
@@ -111,6 +125,7 @@ class EmergencyContact(models.Model):
     phone_number = models.CharField(validators=[phone_regex], max_length=17)
     address = models.TextField()
     can_pickup = models.BooleanField(default=True)
+    email = models.EmailField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - Emergency Contact for {self.child.name}"

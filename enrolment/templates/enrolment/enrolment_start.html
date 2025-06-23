@@ -144,70 +144,92 @@
                     <div class="card-body">
                         <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
                             {% csrf_token %}
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ child_form.name.id_for_label }}" class="form-label">Child's Name</label>
-                                    <div class="form-group">
-                                        <input type="text" class="form-control" id="{{ child_form.name.id_for_label }}" name="{{ child_form.name.html_name }}" value="{{ child_form.name.value|default_if_none:"" }}" required>
-
-                                    </div>
+                            {% if child_form.non_field_errors %}
+                                <div class="alert alert-danger">
+                                    {% for error in child_form.non_field_errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ child_form.date_of_birth.id_for_label }}" class="form-label">Date of Birth</label>
-                                    <div class="form-group">
-                                        <input type="date" class="form-control" id="{{ child_form.date_of_birth.id_for_label }}" name="{{ child_form.date_of_birth.html_name }}" value="{{ child_form.date_of_birth.value|default_if_none:"" }}" required>
-
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ child_form.gender.id_for_label }}" class="form-label">Gender</label>
-                                    <div class="form-group">
-                                        <select class="form-control" id="{{ child_form.gender.id_for_label }}" name="{{ child_form.gender.html_name }}" required>
-                                            <option value="">Select gender</option>
-                                            {% for value, label in child_form.fields.gender.choices %}
-                                                <option value="{{ value }}" {% if child_form.gender.value == value %}selected{% endif %}>{{ label }}</option>
-                                            {% endfor %}
-                                        </select>
-
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ child_form.emergency_contact.id_for_label }}" class="form-label">Emergency Contact</label>
-                                    <div class="form-group">
-                                        <input type="text" class="form-control" id="{{ child_form.emergency_contact.id_for_label }}" name="{{ child_form.emergency_contact.html_name }}" placeholder="Enter emergency contact name" required>
-
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ child_form.emergency_phone.id_for_label }}" class="form-label">Emergency Phone</label>
-                                    <div class="form-group">
-                                        <input type="tel" class="form-control" id="{{ child_form.emergency_phone.id_for_label }}" name="{{ child_form.emergency_phone.html_name }}" placeholder="Enter emergency phone number" required>
-
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ child_form.profile_picture.id_for_label }}" class="form-label">Profile Picture</label>
-                                    <div class="form-group">
-                                        <input type="file" class="form-control" id="{{ child_form.profile_picture.id_for_label }}" name="{{ child_form.profile_picture.html_name }}" accept="image/*">
-                                        <div class="form-text">
-                                            Upload a clear photo of the child (optional)
+                            {% endif %}
+                            <div class="mb-3">
+                                {{ child_form.name.label_tag }}
+                                <div class="form-group">
+                                    {{ child_form.name }}
+                                    {% if child_form.name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ child_form.name.errors.as_text }}
                                         </div>
-
-                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
-                            
-                            <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary px-4">
-                                    <i class="fas fa-arrow-right me-2"></i>
-                                    Next: Parent/Guardian Information
-                                </button>
+                            <div class="mb-3">
+                                {{ child_form.date_of_birth.label_tag }}
+                                <div class="form-group">
+                                    {{ child_form.date_of_birth }}
+                                    {% if child_form.date_of_birth.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ child_form.date_of_birth.errors.as_text }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                {{ child_form.gender.label_tag }}
+                                <div class="form-group">
+                                    {{ child_form.gender }}
+                                    {% if child_form.gender.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ child_form.gender.errors.as_text }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                {{ child_form.emergency_contact.label_tag }}
+                                <div class="form-group">
+                                    {{ child_form.emergency_contact }}
+                                    {% if child_form.emergency_contact.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ child_form.emergency_contact.errors.as_text }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                {{ child_form.emergency_phone.label_tag }}
+                                <div class="form-group">
+                                    {{ child_form.emergency_phone }}
+                                    {% if child_form.emergency_phone.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ child_form.emergency_phone.errors.as_text }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                {{ child_form.center.label_tag }}
+                                <div class="form-group">
+                                    {{ child_form.center }}
+                                    {% if child_form.center.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ child_form.center.errors.as_text }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                {{ child_form.profile_picture.label_tag }}
+                                <div class="form-group">
+                                    {{ child_form.profile_picture }}
+                                    {% if child_form.profile_picture.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ child_form.profile_picture.errors.as_text }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-primary">Next: Parent/Guardian Info</button>
                             </div>
                         </form>
                     </div>

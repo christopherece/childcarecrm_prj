@@ -105,24 +105,40 @@
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <div class="mb-2">
-                                            <label class="form-label">Allergies</label>
-                                            <textarea class="form-control" name="allergies" rows="2">{{ medical_info.allergies }}</textarea>
+                                        <div class="mb-3">
+                                            <h6 class="mb-1">Allergies</h6>
+                                            <p class="text-muted mb-0">{{ medical_info.allergies|default:"No allergies recorded" }}</p>
                                         </div>
-                                        <div class="mb-2">
-                                            <label class="form-label">Medical Conditions</label>
-                                            <textarea class="form-control" name="medical_conditions" rows="2">{{ medical_info.medical_conditions }}</textarea>
+                                        <div class="mb-3">
+                                            <h6 class="mb-1">Medical Conditions</h6>
+                                            <p class="text-muted mb-0">{{ medical_info.medical_conditions|default:"No medical conditions recorded" }}</p>
+                                        </div>
+                                        <div class="mb-3">
+                                            <h6 class="mb-1">Medications</h6>
+                                            <p class="text-muted mb-0">{{ medical_info.medications|default:"No medications recorded" }}</p>
+                                        </div>
+                                        <div class="mb-3">
+                                            <h6 class="mb-1">Medical Notes</h6>
+                                            <p class="text-muted mb-0">{{ medical_info.medical_notes|default:"No medical notes recorded" }}</p>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="mb-2">
-                                            <label class="form-label">Emergency Contact</label>
-                                            <input type="text" class="form-control" name="emergency_contact" value="{{ medical_info.emergency_contact }}">
+                                        <div class="mb-3">
+                                            <h6 class="mb-1">Emergency Contact</h6>
+                                            <p class="text-muted mb-0">{{ medical_info.emergency_contact }}</p>
                                         </div>
-                                        <div class="mb-2">
-                                            <label class="form-label">Emergency Phone</label>
-                                            <input type="tel" class="form-control" name="emergency_phone" value="{{ medical_info.emergency_phone }}">
+                                        <div class="mb-3">
+                                            <h6 class="mb-1">Emergency Phone</h6>
+                                            <p class="text-muted mb-0">{{ medical_info.emergency_phone }}</p>
                                         </div>
+                                        {% if medical_info.immunization_record %}
+                                        <div class="mb-3">
+                                            <h6 class="mb-1">Immunization Record</h6>
+                                            <a href="{{ medical_info.immunization_record.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                                <i class="fas fa-file-pdf"></i> View Record
+                                            </a>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>

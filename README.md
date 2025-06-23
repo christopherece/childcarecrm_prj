@@ -155,18 +155,106 @@ A modern Django-based web application for managing childcare attendance with rea
 
 ## 🚀 Features
 
-### 📱 Core Features
+### 📱 Attendance Management
 - ✅ Real-time attendance tracking with sign-in/sign-out functionality
-- ✅ Automatic notifications for parents and staff
 - ✅ Late sign-in notifications with customizable reasons
-- ✅ Dashboard with live search for children
 - ✅ Comprehensive attendance records with historical data
-- ✅ Center management with capacity tracking
-- ✅ Teacher profiles and assignments
-- ✅ Student Monitor with filtering capabilities
-- ✅ Room-based attendance tracking
 - ✅ Status-based filtering (Present/Absent)
+- ✅ Room-based attendance tracking
+- ✅ Last 7 days attendance summary
+- ✅ Attendance rate calculation
+- ✅ Average sign-in/sign-out times
 - ✅ Responsive design for mobile and tablet devices
+
+### 📝 Enrolment Management
+- ✅ Multi-step enrolment process:
+  - Child information (name, DOB, gender, emergency contact)
+  - Parent/Guardian details
+  - Medical information:
+    - Allergies
+    - Medical conditions
+    - Medications
+    - Medical notes
+    - Immunization records
+  - Emergency contact details
+  - Document management
+- ✅ Profile picture upload
+- ✅ Data validation and error handling
+- ✅ Form field validation
+- ✅ Required field checks
+- ✅ File upload validation
+
+### 👥 Child Management
+- ✅ Child details view with:
+  - Basic information
+  - Emergency contact details
+  - Medical information
+  - Attendance records
+  - Profile picture
+- ✅ Editable child information
+- ✅ Emergency contact management
+- ✅ Medical record management
+- ✅ Document viewing (immunization records)
+
+### 📊 Reports and Analytics
+- ✅ Child attendance reports
+- ✅ Custom date range selection
+- ✅ Attendance statistics
+- ✅ PDF report generation
+- ✅ Room-based attendance summaries
+- ✅ Historical attendance tracking
+
+### 🏫 Center Management
+- ✅ Center information management
+- ✅ Room management with capacity tracking
+- ✅ Opening time configuration
+- ✅ Center-wide attendance overview
+- ✅ Staff assignments
+- ✅ Room-based child management
+
+### 👩‍🏫 Staff Management
+- ✅ Teacher login system
+- ✅ Profile management
+- ✅ Role-based access control
+- ✅ Dashboard with attendance overview
+- ✅ Room assignments
+- ✅ Child monitoring capabilities
+
+### 🔐 Security Features
+- ✅ Secure password hashing
+- ✅ CSRF protection
+- ✅ Session management
+- ✅ Role-based access control
+- ✅ Input validation
+- ✅ XSS protection
+- ✅ Secure file uploads
+
+### 🎨 UI/UX Features
+- ✅ Pink-themed modern interface
+- ✅ Responsive Bootstrap 5 design
+- ✅ Font Awesome icons
+- ✅ Real-time updates
+- ✅ Intuitive navigation
+- ✅ Consistent styling across all pages
+- ✅ Mobile-friendly interface
+- ✅ Interactive forms with validation feedback
+
+### 📱 Mobile Features
+- ✅ QR code scanner for check-in/check-out
+- ✅ Mobile-optimized interface
+- ✅ Touch-friendly controls
+- ✅ Offline support
+- ✅ Push notifications for important updates
+
+### 🔄 System Features
+- ✅ Data validation and error handling
+- ✅ Custom form validation
+- ✅ Message notifications
+- ✅ Static file management
+- ✅ Database optimization
+- ✅ Performance optimization
+- ✅ Error logging and monitoring
+- ✅ Backup and recovery capabilities
 
 ### 👥 User Roles
 - 📝 Teachers: 
@@ -197,6 +285,41 @@ childcare_attendace/
 ```
 
 ## 🛠️ Setup Instructions
+
+1. **Prerequisites**:
+   - Python 3.13 or higher
+   - Django 5.2.1
+   - PostgreSQL (recommended) or SQLite
+   - pip (Python package manager)
+
+2. **Installation Steps**:
+   ```bash
+   # Clone the repository
+   git clone https://github.com/christopherece/childcarecrm_prj.git
+   cd childcarecrm_prj
+   
+   # Create and activate virtual environment
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   
+   # Install dependencies
+   pip install -r requirements.txt
+   
+   # Set up the database
+   python manage.py makemigrations
+   python manage.py migrate
+   
+   # Create a superuser (optional)
+   python manage.py createsuperuser
+   
+   # Run the development server
+   python manage.py runserver
+   ```
+
+3. **Access the Application**:
+   - Open your web browser and navigate to `http://localhost:8000`
+   - Login with your credentials
+   - Start using the system!
 
 1. Create and activate virtual environment:
 ```bash

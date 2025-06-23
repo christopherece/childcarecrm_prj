@@ -121,8 +121,8 @@
                 <ol class="breadcrumb bg-pink">
                     <li class="breadcrumb-item"><a href="{% url 'attendance:dashboard' %}">Dashboard</a></li>
                     <li class="breadcrumb-item"><a href="{% url 'enrolment:enrolment_start' %}">Enrolment</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'enrolment:parent_guardian' child_id=child.id %}">Parent/Guardian</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'enrolment:medical_info' child_id=child.id %}">Medical Information</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'enrolment:parent_guardian' %}">Parent/Guardian</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'enrolment:medical_info' %}">Medical Information</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Emergency Contact</li>
                 </ol>
             </nav>
@@ -140,64 +140,115 @@
                     <div class="card-body">
                         <form method="post" class="needs-validation" novalidate>
                             {% csrf_token %}
+                            {% if contact_form.errors %}
+                                <div class="alert alert-danger">
+                                    <h4 class="alert-heading">Please correct the following errors:</h4>
+                                    <ul class="mb-0">
+                                        {% for field in contact_form %}
+                                            {% if field.errors %}
+                                                <li>
+                                                    <strong>{{ field.label }}</strong>: {{ field.errors.0 }}
+                                                </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                            
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label for="{{ form.relationship.id_for_label }}" class="form-label">Relationship to Child</label>
+                                    <label for="{{ contact_form.relationship.id_for_label }}" class="form-label">Relationship to Child *</label>
                                     <div class="form-group">
-                                        <select class="form-control" id="{{ form.relationship.id_for_label }}" name="{{ form.relationship.html_name }}" required>
+                                        <select class="form-control{% if contact_form.relationship.errors %} is-invalid{% endif %}" 
+                                                id="{{ contact_form.relationship.id_for_label }}" 
+                                                name="{{ contact_form.relationship.html_name }}" 
+                                                required>
                                             <option value="">Select relationship</option>
-                                            <option value="parent" {% if form.relationship.value == "parent" %}selected{% endif %}>Parent</option>
-                                            <option value="grandparent" {% if form.relationship.value == "grandparent" %}selected{% endif %}>Grandparent</option>
-                                            <option value="aunt" {% if form.relationship.value == "aunt" %}selected{% endif %}>Aunt</option>
-                                            <option value="uncle" {% if form.relationship.value == "uncle" %}selected{% endif %}>Uncle</option>
-                                            <option value="sibling" {% if form.relationship.value == "sibling" %}selected{% endif %}>Sibling</option>
-                                            <option value="cousin" {% if form.relationship.value == "cousin" %}selected{% endif %}>Cousin</option>
-                                            <option value="family_friend" {% if form.relationship.value == "family_friend" %}selected{% endif %}>Family Friend</option>
-                                            <option value="other" {% if form.relationship.value == "other" %}selected{% endif %}>Other</option>
+                                            <option value="parent" {% if contact_form.relationship.value == "parent" %}selected{% endif %}>Parent</option>
+                                            <option value="grandparent" {% if contact_form.relationship.value == "grandparent" %}selected{% endif %}>Grandparent</option>
+                                            <option value="aunt" {% if contact_form.relationship.value == "aunt" %}selected{% endif %}>Aunt</option>
+                                            <option value="uncle" {% if contact_form.relationship.value == "uncle" %}selected{% endif %}>Uncle</option>
+                                            <option value="sibling" {% if contact_form.relationship.value == "sibling" %}selected{% endif %}>Sibling</option>
+                                            <option value="cousin" {% if contact_form.relationship.value == "cousin" %}selected{% endif %}>Cousin</option>
+                                            <option value="family_friend" {% if contact_form.relationship.value == "family_friend" %}selected{% endif %}>Family Friend</option>
+                                            <option value="other" {% if contact_form.relationship.value == "other" %}selected{% endif %}>Other</option>
                                         </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
-                                    <div class="form-group">
-                                        <input type="text" class="form-control" id="{{ form.first_name.id_for_label }}" name="{{ form.first_name.html_name }}" placeholder="Enter first name" required>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
-                                    <div class="form-group">
-                                        <input type="text" class="form-control" id="{{ form.last_name.id_for_label }}" name="{{ form.last_name.html_name }}" placeholder="Enter last name" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.email.id_for_label }}" class="form-label">Email Address</label>
-                                    <div class="form-group">
-                                        <input type="email" class="form-control" id="{{ form.email.id_for_label }}" name="{{ form.email.html_name }}" placeholder="Enter email address" required>
+                                        {% if contact_form.relationship.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ contact_form.relationship.errors.0 }}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
                             
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
+                                    <label for="{{ contact_form.first_name.id_for_label }}" class="form-label">First Name *</label>
                                     <div class="form-group">
-                                        <input type="tel" class="form-control" id="{{ form.phone_number.id_for_label }}" name="{{ form.phone_number.html_name }}" placeholder="Enter phone number" required>
+                                        {{ contact_form.first_name }}
+                                        {% if contact_form.first_name.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ contact_form.first_name.errors.0 }}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label for="{{ form.address.id_for_label }}" class="form-label">Address</label>
+                                    <label for="{{ contact_form.last_name.id_for_label }}" class="form-label">Last Name *</label>
                                     <div class="form-group">
-                                        <textarea class="form-control" id="{{ form.address.id_for_label }}" name="{{ form.address.html_name }}" rows="3" placeholder="Enter address"></textarea>
+                                        {{ contact_form.last_name }}
+                                        {% if contact_form.last_name.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ contact_form.last_name.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ contact_form.phone_number.id_for_label }}" class="form-label">Phone Number *</label>
+                                    <div class="form-group">
+                                        {{ contact_form.phone_number }}
+                                        {% if contact_form.phone_number.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ contact_form.phone_number.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ contact_form.email.id_for_label }}" class="form-label">Email *</label>
+                                    <div class="form-group">
+                                        {{ contact_form.email }}
+                                        {% if contact_form.email.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ contact_form.email.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="{{ contact_form.address.id_for_label }}" class="form-label">Address *</label>
+                                    <div class="form-group">
+                                        {{ contact_form.address }}
+                                        {% if contact_form.address.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ contact_form.address.errors.0 }}
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
                             
                             <div class="mt-4">
                                 <div class="d-flex justify-content-between">
-                                    <a href="{% url 'enrolment:medical_info' child_id=child.id %}" class="btn btn-secondary">
+                                    <a href="{% url 'enrolment:medical_info' %}" class="btn btn-secondary">
                                         <i class="fas fa-arrow-left me-2"></i>
                                         Back
                                     </a>

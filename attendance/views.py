@@ -1,33 +1,24 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.utils import timezone
 import pytz
-from .models import Child, Attendance
-
-# Set default timezone to New Zealand
-NZ_TIMEZONE = pytz.timezone('Pacific/Auckland')
-
-from .models import Teacher, Center, Child, Attendance, Room
+from .models import Teacher, Center, Child, Attendance, Room, Parent
 from .forms import TeacherProfileForm
 from django.template.loader import render_to_string
-from django.contrib import messages
 from django.conf import settings
 from datetime import timedelta
 from django.db import transaction, utils
 from django.db.utils import IntegrityError
 from datetime import datetime
-
-from .models import Child, Attendance
 from notifications.models import Notification
-from django.db.models import Q
 import json
-from django.utils import timezone
-from django.conf import settings
-from django.contrib.auth import authenticate, login, logout
+
+# Set default timezone to New Zealand
+NZ_TIMEZONE = pytz.timezone('Pacific/Auckland')
 
 @login_required
 def logout_view(request):
@@ -43,11 +34,32 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 
+@login_required
 def child_detail(request, child_id):
     """View to display child details and their attendance records"""
-    child = get_object_or_404(Child, id=child_id)
-    
-    # Get today's date
+    try:
+        child = get_object_or_404(Child, id=child_id)
+        
+        # Get today's date
+        today = timezone.now().date()
+        
+        # Get attendance records for this child
+        attendance_records = Attendance.objects.filter(
+            child=child,
+            sign_in__date__gte=today - timedelta(days=7)  # Show last 7 days
+        ).order_by('-sign_in')
+        
+        context = {
+            'child': child,
+            'attendance_records': attendance_records,
+            'today': today,
+            'medical_info': getattr(child, 'medical_info', None)
+        }
+        
+        return render(request, 'attendance/child_detail.html', context)
+    except Exception as e:
+        messages.error(request, f"Error loading child details: {str(e)}")
+        return redirect('attendance:dashboard')
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
@@ -61,22 +73,6 @@ def manage_children(request):
         'today': timezone.now().date()
     }
     return render(request, 'attendance/manage_children.html', context)
-
-# Original imports continue below...
-    today = timezone.now().date()
-    
-    # Get attendance records for this child
-    attendance_records = Attendance.objects.filter(
-        child=child,
-        sign_in__date__gte=today - timedelta(days=7)  # Show last 7 days
-    ).order_by('-sign_in')
-    
-    context = {
-        'child': child,
-        'attendance_records': attendance_records,
-        'today': today
-    }
-    return render(request, 'attendance/child_detail.html', context)
 
 from django.views.decorators.csrf import csrf_protect
 

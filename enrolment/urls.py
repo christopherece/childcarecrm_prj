@@ -6,11 +6,11 @@ app_name = 'enrolment'
 urlpatterns = [
     # Enrolment Process
     path('start/', views.enrolment_start, name='enrolment_start'),
-    path('parent-guardian/<int:child_id>/', views.parent_guardian, name='parent_guardian'),
-    path('medical-info/<int:child_id>/', views.medical_info, name='medical_info'),
-    path('emergency-contact/<int:child_id>/', views.emergency_contact, name='emergency_contact'),
-    path('enrolment-details/<int:child_id>/', views.enrolment_details, name='enrolment_details'),
-    path('success/', views.enrolment_success, name='success'),
+    path('parent-guardian/', views.parent_guardian, name='parent_guardian'),
+    path('medical-info/', views.medical_info, name='medical_info'),
+    path('emergency-contact/', views.emergency_contact, name='emergency_contact'),
+    path('enrolment-details/', views.enrolment_details, name='enrolment_details'),
+    path('success/', views.success, name='success'),
     path('api/rooms/<int:center_id>/', views.get_rooms, name='api_rooms'),
 
     # Admin Views
