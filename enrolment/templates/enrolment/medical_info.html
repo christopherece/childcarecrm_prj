@@ -179,9 +179,9 @@
                                 <div class="col-12 mb-3">
                                     <label for="{{ medical_form.immunization_record.id_for_label }}" class="form-label">Immunization Record</label>
                                     <div class="form-group">
-                                        <input type="file" class="form-control" id="{{ medical_form.immunization_record.id_for_label }}" name="{{ medical_form.immunization_record.html_name }}">
+                                        <input type="file" class="form-control" id="{{ medical_form.immunization_record.id_for_label }}" name="{{ medical_form.immunization_record.html_name }}" accept=".pdf,.jpg,.jpeg,.png" required>
                                         <div class="form-text">
-                                            Please upload your child's immunization record (PDF or image files only)
+                                            Please upload your child's immunization record (PDF, JPG, or PNG formats accepted)
                                         </div>
                                     </div>
                                 </div>

@@ -27,14 +27,29 @@ def child_details(request, child_id):
         child.name = request.POST.get('child_name', child.name)
         child.gender = request.POST.get('gender', child.gender)
         child.date_of_birth = request.POST.get('date_of_birth', child.date_of_birth)
-        child.allergies = request.POST.get('allergies', child.allergies)
-        child.medical_conditions = request.POST.get('medical_conditions', child.medical_conditions)
         child.emergency_contact = request.POST.get('emergency_contact', child.emergency_contact)
         child.emergency_phone = request.POST.get('emergency_phone', child.emergency_phone)
         
         # Handle profile picture upload
         if 'profile_picture' in request.FILES:
             child.profile_picture = request.FILES['profile_picture']
+        
+        # Update medical information
+        medical_info = getattr(child, 'medical_info', None)
+        if not medical_info:
+            medical_info = MedicalInformation(child=child)
+        
+        medical_info.allergies = request.POST.get('allergies', '')
+        medical_info.medical_conditions = request.POST.get('medical_conditions', '')
+        medical_info.medications = request.POST.get('medications', '')
+        medical_info.medical_notes = request.POST.get('medical_notes', '')
+        
+        # Handle immunization record upload
+        if 'immunization_record' in request.FILES:
+            print(f"Uploading immunization record: {request.FILES['immunization_record'].name}")
+            print(f"File size: {request.FILES['immunization_record'].size} bytes")
+            medical_info.immunization_record = request.FILES['immunization_record']
+            print(f"Saved to: {medical_info.immunization_record.path}")
         
         # Update parent information
         parent.name = request.POST.get('parent_name', parent.name)
@@ -45,6 +60,7 @@ def child_details(request, child_id):
         try:
             with transaction.atomic():
                 child.save()
+                medical_info.save()
                 parent.save()
                 messages.success(request, 'Child information updated successfully')
                 return redirect('reports:child_details', child_id=child.id)

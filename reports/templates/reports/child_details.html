@@ -131,14 +131,20 @@
                                             <h6 class="mb-1">Emergency Phone</h6>
                                             <p class="text-muted mb-0">{{ medical_info.emergency_phone }}</p>
                                         </div>
-                                        {% if medical_info.immunization_record %}
                                         <div class="mb-3">
                                             <h6 class="mb-1">Immunization Record</h6>
-                                            <a href="{{ medical_info.immunization_record.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
-                                                <i class="fas fa-file-pdf"></i> View Record
-                                            </a>
+                                            <div class="d-flex align-items-center gap-2">
+                                                {% if medical_info.immunization_record %}
+                                                <a href="{{ medical_info.immunization_record.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                                    <i class="fas fa-file-pdf"></i> View Record
+                                                </a>
+                                                {% endif %}
+                                                <label class="btn btn-outline-success btn-sm">
+                                                    <i class="fas fa-upload"></i> Upload New Record
+                                                    <input type="file" class="d-none" name="immunization_record" accept=".pdf,.jpg,.jpeg,.png">
+                                                </label>
+                                            </div>
                                         </div>
-                                        {% endif %}
                                     </div>
                                 </div>
                             </div>

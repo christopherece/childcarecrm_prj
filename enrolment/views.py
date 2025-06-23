@@ -158,7 +158,7 @@ def enrolment_details(request):
         return redirect('enrolment:enrolment_start')
     
     if request.method == 'POST':
-        enrolment_form = EnrolmentForm(request.POST)
+        enrolment_form = EnrolmentForm(request.POST, request.FILES)
         if enrolment_form.is_valid():
             try:
                 # Get session data
@@ -203,21 +203,25 @@ def enrolment_details(request):
                     room=Room.objects.get(id=room_id)
                 )
                 
+                # Save profile picture if it exists in the enrolment form
+                profile_picture = request.FILES.get('profile_picture')
+                if profile_picture:
+                    child.profile_picture = profile_picture
+                    child.save()
+                
                 # Create medical info
-                medical_data = enrolment_data.get('medical_info', {})
                 try:
                     medical_info = MedicalInformation.objects.create(
                         child=child,
-                        allergies=medical_data.get('allergies', ''),
-                        medical_conditions=medical_data.get('medical_conditions', ''),
-                        medications=medical_data.get('medications', ''),
-                        medical_notes=medical_data.get('medical_notes', '')
+                        allergies=enrolment_data.get('medical_info', {}).get('allergies', ''),
+                        medical_conditions=enrolment_data.get('medical_info', {}).get('medical_conditions', ''),
+                        medications=enrolment_data.get('medical_info', {}).get('medications', ''),
+                        medical_notes=enrolment_data.get('medical_info', {}).get('medical_notes', '')
                     )
                     
-                    # Save immunization record if provided
-                    immunization_record = medical_data.get('immunization_record')
-                    if immunization_record:
-                        medical_info.immunization_record = immunization_record
+                    # Save immunization record from form data
+                    if 'immunization_record' in request.FILES:
+                        medical_info.immunization_record = request.FILES['immunization_record']
                         medical_info.save()
                     
                 except Exception as e:
