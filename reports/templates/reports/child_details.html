@@ -66,6 +66,37 @@
                             </div>
                         </div>
 
+                        <!-- Enrolment Information -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h5 class="mb-0">Enrolment Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Enrolment Status</label>
+                                            <select class="form-select" name="enrolment_status" id="enrolment-status-select" data-enrolment-id="{{ enrolment.id }}">
+                                                {% for status in enrolment_status_choices %}
+                                                    <option value="{{ status.0 }}" {% if enrolment.status == status.0 %}selected{% endif %}>{{ status.1 }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <h6 class="mb-1">Start Date</h6>
+                                            <p class="text-muted mb-0">{{ enrolment.start_date|date:"F j, Y" }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <h6 class="mb-1">Enrolment Date</h6>
+                                            <p class="text-muted mb-0">{{ enrolment.enrolment_date|date:"F j, Y H:i" }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Parent Information -->
                         <div class="card mb-3">
                             <div class="card-header">

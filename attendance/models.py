@@ -121,6 +121,26 @@ class Child(models.Model):
             return self.profile_picture.url
         return '/static/images/user-default.png'
 
+    def get_attendance_rate(self):
+        """Calculate attendance rate for the last 30 days"""
+        thirty_days_ago = timezone.now().date() - timedelta(days=30)
+        
+        # Get all days in the last 30 days
+        total_days = (timezone.now().date() - thirty_days_ago).days + 1
+        
+        # Get number of days with attendance
+        attended_days = Attendance.objects.filter(
+            child=self,
+            sign_in__date__gte=thirty_days_ago
+        ).count()
+        
+        # Calculate attendance rate
+        if total_days == 0:
+            return "0%"
+        
+        rate = (attended_days / total_days) * 100
+        return f"{rate:.1f}%"
+
 class Attendance(models.Model):
     child = models.ForeignKey(Child, on_delete=models.CASCADE)
     parent = models.ForeignKey(Parent, on_delete=models.CASCADE)

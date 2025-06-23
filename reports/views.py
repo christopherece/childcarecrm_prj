@@ -1,25 +1,43 @@
+# Enrolment status choices
+ENROLMENT_STATUS_CHOICES = [
+    ('pending', 'Pending'),
+    ('approved', 'Approved'),
+    ('rejected', 'Rejected'),
+    ('withdrawn', 'Withdrawn')
+]
+
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Count, Avg, Sum, Q
-from datetime import datetime, timedelta
-from django.utils import timezone
-from django.db.models.functions import ExtractHour
-from django.http import HttpResponse
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Count, Avg, Sum, Q, Prefetch
 from django.contrib import messages
 from django.db import transaction
+from django.utils import timezone
+from datetime import datetime, timedelta
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, JsonResponse
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.exceptions import ValidationError
+from django.db.models.functions import ExtractHour
+
 from attendance.models import Child, Parent, Attendance, Center, Teacher, Room
+from enrolment.models import Enrolment, MedicalInformation
+from attendance.models import Parent
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from django.template.loader import render_to_string
-from django.db.models import Prefetch
 
 # Add new view for child details
 def child_details(request, child_id):
     child = get_object_or_404(Child, id=child_id)
     parent = child.parent
+    enrolment = child.enrolments.first()  # Get the first enrolment record
+    
+    # Initialize medical_info
+    medical_info = getattr(child, 'medical_info', None)
+    if not medical_info:
+        medical_info = MedicalInformation(child=child)
     
     # Handle form submission
     if request.method == 'POST':
@@ -35,10 +53,6 @@ def child_details(request, child_id):
             child.profile_picture = request.FILES['profile_picture']
         
         # Update medical information
-        medical_info = getattr(child, 'medical_info', None)
-        if not medical_info:
-            medical_info = MedicalInformation(child=child)
-        
         medical_info.allergies = request.POST.get('allergies', '')
         medical_info.medical_conditions = request.POST.get('medical_conditions', '')
         medical_info.medications = request.POST.get('medications', '')
@@ -46,10 +60,7 @@ def child_details(request, child_id):
         
         # Handle immunization record upload
         if 'immunization_record' in request.FILES:
-            print(f"Uploading immunization record: {request.FILES['immunization_record'].name}")
-            print(f"File size: {request.FILES['immunization_record'].size} bytes")
             medical_info.immunization_record = request.FILES['immunization_record']
-            print(f"Saved to: {medical_info.immunization_record.path}")
         
         # Update parent information
         parent.name = request.POST.get('parent_name', parent.name)
@@ -57,23 +68,54 @@ def child_details(request, child_id):
         parent.phone = request.POST.get('parent_phone', parent.phone)
         parent.address = request.POST.get('parent_address', parent.address)
         
+        # Update enrolment status if provided
+        if enrolment and 'enrolment_status' in request.POST:
+            enrolment.status = request.POST['enrolment_status']
+        
         try:
             with transaction.atomic():
                 child.save()
                 medical_info.save()
                 parent.save()
+                if enrolment:
+                    enrolment.save()
                 messages.success(request, 'Child information updated successfully')
-                return redirect('reports:child_details', child_id=child.id)
+                return redirect('reports:child_details', child_id=child_id)
         except Exception as e:
             messages.error(request, f'Error updating information: {str(e)}')
-            return redirect('reports:child_details', child_id=child.id)
-            
-    # Get recent attendance records
+            return redirect('reports:child_details', child_id=child_id)
+
+    # Prepare context for GET request
     thirty_days_ago = timezone.now().date() - timedelta(days=30)
-    recent_attendance = Attendance.objects.filter(
-        child=child,
-        sign_in__date__gte=thirty_days_ago
-    ).order_by('-sign_in')
+    recent_attendance = Attendance.objects.filter(child=child, sign_in__date__gte=thirty_days_ago).order_by('-sign_in')
+    
+    context = {
+        'child': child,
+        'parent': parent,
+        'medical_info': medical_info,
+        'profile_picture_url': child.profile_picture.url if child.profile_picture else '/static/images/default-profile.png',
+        'genders': ['Male', 'Female', 'Other'],
+        'recent_attendance': recent_attendance,
+        'attendance_rate': child.get_attendance_rate(),
+        'enrolment': enrolment,
+        'enrolment_status_choices': ENROLMENT_STATUS_CHOICES
+    }
+    return render(request, 'reports/child_details.html', context)
+
+@login_required
+@transaction.atomic
+def update_enrolment_status(request, enrolment_id):
+    """Update enrolment status via AJAX"""
+    if request.method == 'POST':
+        enrolment = get_object_or_404(Enrolment, id=enrolment_id)
+        new_status = request.POST.get('status')
+        
+        if new_status in dict(ENROLMENT_STATUS_CHOICES):
+            enrolment.status = new_status
+            enrolment.save()
+            return JsonResponse({'success': True, 'status': enrolment.get_status_display()})
+        
+    return JsonResponse({'success': False, 'error': 'Invalid status'})
     
     # Calculate attendance statistics
     total_possible_days = (timezone.now().date() - thirty_days_ago).days + 1
