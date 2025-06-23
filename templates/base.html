@@ -42,10 +42,10 @@
                     {% endif %}
                     {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link {% if 'profile' in request.path %}active{% endif %}" href="{% url 'attendance:profile' %}">My Profile</a>
+                            <a class="nav-link {% if 'admin-portal' in request.path %}active{% endif %}" href="{% url 'reports:admin_portal' %}">Admin Portal</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if 'admin-portal' in request.path %}active{% endif %}" href="{% url 'reports:admin_portal' %}">Admin Portal</a>
+                            <a class="nav-link {% if 'profile' in request.path %}active{% endif %}" href="{% url 'attendance:profile' %}">My Profile</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'attendance:sign_out' %}">Sign Out</a>
