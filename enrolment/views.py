@@ -33,7 +33,8 @@ def enrolment_start(request):
                 'date_of_birth': cleaned_data['date_of_birth'].isoformat(),
                 'gender': cleaned_data['gender'],
                 'emergency_contact': cleaned_data['emergency_contact'],
-                'emergency_phone': cleaned_data['emergency_phone']
+                'emergency_phone': cleaned_data['emergency_phone'],
+                'center_id': cleaned_data['center'].id if cleaned_data['center'] else None
             }
             
             # Store in session
@@ -174,6 +175,10 @@ def enrolment_details(request):
                     messages.error(request, "Missing required information")
                     return redirect('enrolment:enrolment_start')
                 
+                # Get center and room from form data
+                center_id = enrolment_form.cleaned_data['center'].id
+                room_id = enrolment_form.cleaned_data['room'].id
+                
                 # Create parent
                 parent_data = enrolment_data.get('parent_guardian', {})
                 parent, created = Parent.objects.get_or_create(
@@ -194,8 +199,8 @@ def enrolment_details(request):
                     emergency_contact=child_data.get('emergency_contact'),
                     emergency_phone=child_data.get('emergency_phone'),
                     parent=parent,
-                    center=Center.objects.get(id=enrolment_data.get('center_id')),
-                    room=Room.objects.get(id=enrolment_data.get('room_id'))
+                    center=Center.objects.get(id=center_id),
+                    room=Room.objects.get(id=room_id)
                 )
                 
                 # Create medical info
