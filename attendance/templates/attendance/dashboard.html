@@ -835,6 +835,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedChildId = document.getElementById('selectedChildId');
     const actionInput = document.getElementById('attendanceAction');
     const notesInput = document.getElementById('attendanceNotes');
+    
+    // Add form validation
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!selectedChildId.value) {
+                e.preventDefault();
+                alert('Please select a child first');
+                return false;
+            }
+            return true;
+        });
+    }
     const signInButton = document.getElementById('signInButton');
     const signOutButton = document.getElementById('signOutButton');
 
